@@ -1,25 +1,41 @@
 import 'package:flutter/material.dart';
-import 'screens/welcome_screen.dart';
-import 'screens/signin_screen.dart';
-import 'screens/signup_screen.dart';
+import 'package:same_team_flutter/screens/add_chore_screen.dart';
+import 'package:same_team_flutter/screens/child_dashboard_screen.dart';
+import 'package:same_team_flutter/screens/child_rewards_screen.dart';
+import 'package:same_team_flutter/screens/chores_list_screen.dart';
+import 'package:same_team_flutter/screens/parent_dashboard_screen.dart';
+import 'package:same_team_flutter/screens/parent_rewards_screen.dart';
+import 'package:same_team_flutter/screens/signin_screen.dart';
+import 'package:same_team_flutter/screens/signup_screen.dart';
+import 'package:same_team_flutter/screens/welcome_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const SameTeamApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SameTeamApp extends StatelessWidget {
+  const SameTeamApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SameTeamApp',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: '/',
+      title: 'SameTeam Flutter',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        primarySwatch: Colors.blue,
+      ),
+      initialRoute: '/welcome',
       routes: {
-        '/': (context) => const WelcomeScreen(),
+        '/welcome': (context) => const WelcomeScreen(),
         '/signin': (context) => const SignInScreen(),
         '/signup': (context) => const SignUpScreen(),
+        '/parentDashboard': (context) => const ParentDashboardScreen(),
+        '/addChore': (context) => const AddChoreScreen(),
+        '/parentRewards': (context) => const ParentRewardsScreen(),
+        '/childDashboard': (context) => const ChildDashboardScreen(),
+        '/choresList': (context) => const ChoresListScreen(),
+        '/childRewards': (context) => const ChildRewardsScreen(),
       },
     );
   }
