@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'SameTeamApp',
       debugShowCheckedModeBanner: false,
-      initialRoute: '/signin',
+      initialRoute: '/welcome',
       routes: {
         '/signin': (context) => SignInScreen(),
         '/signup': (context) => SignUpScreen(),

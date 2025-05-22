@@ -1,82 +1,38 @@
-import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+const String baseUrl = 'https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api';
 
 class ApiService {
-  final String baseUrl = 'https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api';
-
-  // Login - returns full response
-  Future<http.Response> login(String email, String password) async {
-    final url = Uri.parse('$baseUrl/Auth/login');
+  static Future<http.Response> loginRaw(String email, String password) async {
     return await http.post(
-      url,
+      Uri.parse('$baseUrl/Auth/login'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'email': email, 'password': password}),
     );
   }
 
-  // Register - returns full response
-  Future<http.Response> register({
+
+  static Future<http.Response> registerUser({
     required String username,
     required String email,
     required String password,
     required String role,
-    String? team,
-    String? teamPassword,
+    required String team,
+    required String teamPassword,
   }) async {
-    final url = Uri.parse('$baseUrl/Auth/register');
-    final Map<String, dynamic> body = {
-      'username': username,
-      'email': email,
-      'password': password,
-      'role': role,
-    };
-
-    // Optional team info
-    if (team != null) body['team'] = team;
-    if (teamPassword != null) body['teamPassword'] = teamPassword;
-
-    return await http.post(
-      url,
+    final response = await http.post(
+      Uri.parse('$baseUrl/Auth/register'),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode(body),
+      body: json.encode({
+        'username': username,
+        'email': email,
+        'password': password,
+        'role': role,
+        'team': team,
+        'teamPassword': teamPassword,
+      }),
     );
-  }
-
-  // Get chores - sample with token
-  Future<http.Response> getChores(String token) async {
-    final url = Uri.parse('$baseUrl/Chores');
-    return await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-  }
-
-  // Add chore - example POST request with token
-  Future<http.Response> addChore(Map<String, dynamic> choreData, String token) async {
-    final url = Uri.parse('$baseUrl/Chores');
-    return await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: json.encode(choreData),
-    );
-  }
-
-  // Redeem reward - example
-  Future<http.Response> redeemReward(Map<String, dynamic> rewardData, String token) async {
-    final url = Uri.parse('$baseUrl/RedeemedRewards');
-    return await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: json.encode(rewardData),
-    );
+    return response;
   }
 }
