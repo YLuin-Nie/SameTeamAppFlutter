@@ -1,27 +1,15 @@
-class Reward {
-  final int rewardId;
-  final String name;
-  final int cost;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  Reward({
-    required this.rewardId,
-    required this.name,
-    required this.cost,
-  });
+part 'reward_model.freezed.dart';
+part 'reward_model.g.dart';
 
-  factory Reward.fromJson(Map<String, dynamic> json) {
-    return Reward(
-      rewardId: json['rewardId'],
-      name: json['name'],
-      cost: json['cost'],
-    );
-  }
+@freezed
+class Reward with _$Reward {
+  const factory Reward({
+    required int rewardId,
+    required String name,
+    required int cost,
+  }) = _Reward;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'rewardId': rewardId,
-      'name': name,
-      'cost': cost,
-    };
-  }
+  factory Reward.fromJson(Map<String, dynamic> json) => _$RewardFromJson(json);
 }

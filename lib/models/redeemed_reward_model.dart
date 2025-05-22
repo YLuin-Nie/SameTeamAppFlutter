@@ -1,39 +1,19 @@
-class RedeemedReward {
-  final int redemptionId;
-  final int userId;
-  final int rewardId;
-  final String rewardName;
-  final int pointsSpent;
-  final String dateRedeemed;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  RedeemedReward({
-    required this.redemptionId,
-    required this.userId,
-    required this.rewardId,
-    required this.rewardName,
-    required this.pointsSpent,
-    required this.dateRedeemed,
-  });
+part 'redeemed_reward_model.freezed.dart';
+part 'redeemed_reward_model.g.dart';
 
-  factory RedeemedReward.fromJson(Map<String, dynamic> json) {
-    return RedeemedReward(
-      redemptionId: json['redemptionId'],
-      userId: json['userId'],
-      rewardId: json['rewardId'],
-      rewardName: json['rewardName'],
-      pointsSpent: json['pointsSpent'],
-      dateRedeemed: json['dateRedeemed'],
-    );
-  }
+@freezed
+class RedeemedReward with _$RedeemedReward {
+  const factory RedeemedReward({
+    required int redemptionId,
+    required int userId,
+    required int rewardId,
+    required String rewardName,
+    required int pointsSpent,
+    required String dateRedeemed,
+  }) = _RedeemedReward;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'redemptionId': redemptionId,
-      'userId': userId,
-      'rewardId': rewardId,
-      'rewardName': rewardName,
-      'pointsSpent': pointsSpent,
-      'dateRedeemed': dateRedeemed,
-    };
-  }
+  factory RedeemedReward.fromJson(Map<String, dynamic> json) =>
+      _$RedeemedRewardFromJson(json);
 }

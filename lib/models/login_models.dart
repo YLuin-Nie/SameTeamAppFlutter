@@ -1,25 +1,28 @@
-class LoginRequest {
-  String email;
-  String password;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  LoginRequest({required this.email, required this.password});
+part 'login_models.freezed.dart';
+part 'login_models.g.dart';
 
-  Map<String, dynamic> toJson() => {
-    'email': email,
-    'password': password,
-  };
+@freezed
+class LoginModel with _$LoginModel {
+  const factory LoginModel({
+    required String email,
+    required String password,
+  }) = _LoginModel;
+
+  factory LoginModel.fromJson(Map<String, dynamic> json) => _$LoginModelFromJson(json);
 }
 
-class LoginResponse {
-  final String token;
-  final Map<String, dynamic> user;
+@freezed
+class RegisterModel with _$RegisterModel {
+  const factory RegisterModel({
+    required String username,
+    required String email,
+    required String password,
+    String? role,
+    String? team,
+    String? teamPassword,
+  }) = _RegisterModel;
 
-  LoginResponse({required this.token, required this.user});
-
-  factory LoginResponse.fromJson(Map<String, dynamic> json) {
-    return LoginResponse(
-      token: json['token'],
-      user: json['user'],
-    );
-  }
+  factory RegisterModel.fromJson(Map<String, dynamic> json) => _$RegisterModelFromJson(json);
 }

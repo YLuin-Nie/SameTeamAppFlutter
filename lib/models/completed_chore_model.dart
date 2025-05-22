@@ -1,43 +1,20 @@
-class CompletedChore {
-  final int completedId;
-  final int choreId;
-  final String choreText;
-  final int points;
-  final int? assignedTo;
-  final String dateAssigned;
-  final String completionDate;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  CompletedChore({
-    required this.completedId,
-    required this.choreId,
-    required this.choreText,
-    required this.points,
-    required this.assignedTo,
-    required this.dateAssigned,
-    required this.completionDate,
-  });
+part 'completed_chore_model.freezed.dart';
+part 'completed_chore_model.g.dart';
 
-  factory CompletedChore.fromJson(Map<String, dynamic> json) {
-    return CompletedChore(
-      completedId: json['completedId'],
-      choreId: json['choreId'],
-      choreText: json['choreText'],
-      points: json['points'],
-      assignedTo: json['assignedTo'],
-      dateAssigned: json['dateAssigned'],
-      completionDate: json['completionDate'],
-    );
-  }
+@freezed
+class CompletedChore with _$CompletedChore {
+  const factory CompletedChore({
+    required int completedId,
+    required int choreId,
+    required String choreText,
+    required int points,
+    int? assignedTo,
+    required String dateAssigned,
+    required String completionDate,
+  }) = _CompletedChore;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'completedId': completedId,
-      'choreId': choreId,
-      'choreText': choreText,
-      'points': points,
-      'assignedTo': assignedTo,
-      'dateAssigned': dateAssigned,
-      'completionDate': completionDate,
-    };
-  }
+  factory CompletedChore.fromJson(Map<String, dynamic> json) =>
+      _$CompletedChoreFromJson(json);
 }

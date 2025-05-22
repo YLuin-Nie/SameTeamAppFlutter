@@ -1,23 +1,14 @@
-class Team {
-  final int teamId;
-  final String teamName;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  Team({
-    required this.teamId,
-    required this.teamName,
-  });
+part 'team_model.freezed.dart';
+part 'team_model.g.dart';
 
-  factory Team.fromJson(Map<String, dynamic> json) {
-    return Team(
-      teamId: json['teamId'],
-      teamName: json['teamName'],
-    );
-  }
+@freezed
+class Team with _$Team {
+  const factory Team({
+    required int teamId,
+    required String teamName,
+  }) = _Team;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'teamId': teamId,
-      'teamName': teamName,
-    };
-  }
+  factory Team.fromJson(Map<String, dynamic> json) => _$TeamFromJson(json);
 }

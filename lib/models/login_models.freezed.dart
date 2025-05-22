@@ -1,0 +1,440 @@
+// coverage:ignore-file
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint
+// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
+
+part of 'login_models.dart';
+
+// **************************************************************************
+// FreezedGenerator
+// **************************************************************************
+
+T _$identity<T>(T value) => value;
+
+final _privateConstructorUsedError = UnsupportedError(
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+
+LoginModel _$LoginModelFromJson(Map<String, dynamic> json) {
+  return _LoginModel.fromJson(json);
+}
+
+/// @nodoc
+mixin _$LoginModel {
+  String get email => throw _privateConstructorUsedError;
+  String get password => throw _privateConstructorUsedError;
+
+  /// Serializes this LoginModel to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of LoginModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $LoginModelCopyWith<LoginModel> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $LoginModelCopyWith<$Res> {
+  factory $LoginModelCopyWith(
+          LoginModel value, $Res Function(LoginModel) then) =
+      _$LoginModelCopyWithImpl<$Res, LoginModel>;
+  @useResult
+  $Res call({String email, String password});
+}
+
+/// @nodoc
+class _$LoginModelCopyWithImpl<$Res, $Val extends LoginModel>
+    implements $LoginModelCopyWith<$Res> {
+  _$LoginModelCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of LoginModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? email = null,
+    Object? password = null,
+  }) {
+    return _then(_value.copyWith(
+      email: null == email
+          ? _value.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      password: null == password
+          ? _value.password
+          : password // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$LoginModelImplCopyWith<$Res>
+    implements $LoginModelCopyWith<$Res> {
+  factory _$$LoginModelImplCopyWith(
+          _$LoginModelImpl value, $Res Function(_$LoginModelImpl) then) =
+      __$$LoginModelImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String email, String password});
+}
+
+/// @nodoc
+class __$$LoginModelImplCopyWithImpl<$Res>
+    extends _$LoginModelCopyWithImpl<$Res, _$LoginModelImpl>
+    implements _$$LoginModelImplCopyWith<$Res> {
+  __$$LoginModelImplCopyWithImpl(
+      _$LoginModelImpl _value, $Res Function(_$LoginModelImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of LoginModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? email = null,
+    Object? password = null,
+  }) {
+    return _then(_$LoginModelImpl(
+      email: null == email
+          ? _value.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      password: null == password
+          ? _value.password
+          : password // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$LoginModelImpl implements _LoginModel {
+  const _$LoginModelImpl({required this.email, required this.password});
+
+  factory _$LoginModelImpl.fromJson(Map<String, dynamic> json) =>
+      _$$LoginModelImplFromJson(json);
+
+  @override
+  final String email;
+  @override
+  final String password;
+
+  @override
+  String toString() {
+    return 'LoginModel(email: $email, password: $password)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$LoginModelImpl &&
+            (identical(other.email, email) || other.email == email) &&
+            (identical(other.password, password) ||
+                other.password == password));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, email, password);
+
+  /// Create a copy of LoginModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$LoginModelImplCopyWith<_$LoginModelImpl> get copyWith =>
+      __$$LoginModelImplCopyWithImpl<_$LoginModelImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$LoginModelImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _LoginModel implements LoginModel {
+  const factory _LoginModel(
+      {required final String email,
+      required final String password}) = _$LoginModelImpl;
+
+  factory _LoginModel.fromJson(Map<String, dynamic> json) =
+      _$LoginModelImpl.fromJson;
+
+  @override
+  String get email;
+  @override
+  String get password;
+
+  /// Create a copy of LoginModel
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$LoginModelImplCopyWith<_$LoginModelImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+RegisterModel _$RegisterModelFromJson(Map<String, dynamic> json) {
+  return _RegisterModel.fromJson(json);
+}
+
+/// @nodoc
+mixin _$RegisterModel {
+  String get username => throw _privateConstructorUsedError;
+  String get email => throw _privateConstructorUsedError;
+  String get password => throw _privateConstructorUsedError;
+  String? get role => throw _privateConstructorUsedError;
+  String? get team => throw _privateConstructorUsedError;
+  String? get teamPassword => throw _privateConstructorUsedError;
+
+  /// Serializes this RegisterModel to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of RegisterModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $RegisterModelCopyWith<RegisterModel> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $RegisterModelCopyWith<$Res> {
+  factory $RegisterModelCopyWith(
+          RegisterModel value, $Res Function(RegisterModel) then) =
+      _$RegisterModelCopyWithImpl<$Res, RegisterModel>;
+  @useResult
+  $Res call(
+      {String username,
+      String email,
+      String password,
+      String? role,
+      String? team,
+      String? teamPassword});
+}
+
+/// @nodoc
+class _$RegisterModelCopyWithImpl<$Res, $Val extends RegisterModel>
+    implements $RegisterModelCopyWith<$Res> {
+  _$RegisterModelCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of RegisterModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? username = null,
+    Object? email = null,
+    Object? password = null,
+    Object? role = freezed,
+    Object? team = freezed,
+    Object? teamPassword = freezed,
+  }) {
+    return _then(_value.copyWith(
+      username: null == username
+          ? _value.username
+          : username // ignore: cast_nullable_to_non_nullable
+              as String,
+      email: null == email
+          ? _value.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      password: null == password
+          ? _value.password
+          : password // ignore: cast_nullable_to_non_nullable
+              as String,
+      role: freezed == role
+          ? _value.role
+          : role // ignore: cast_nullable_to_non_nullable
+              as String?,
+      team: freezed == team
+          ? _value.team
+          : team // ignore: cast_nullable_to_non_nullable
+              as String?,
+      teamPassword: freezed == teamPassword
+          ? _value.teamPassword
+          : teamPassword // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$RegisterModelImplCopyWith<$Res>
+    implements $RegisterModelCopyWith<$Res> {
+  factory _$$RegisterModelImplCopyWith(
+          _$RegisterModelImpl value, $Res Function(_$RegisterModelImpl) then) =
+      __$$RegisterModelImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String username,
+      String email,
+      String password,
+      String? role,
+      String? team,
+      String? teamPassword});
+}
+
+/// @nodoc
+class __$$RegisterModelImplCopyWithImpl<$Res>
+    extends _$RegisterModelCopyWithImpl<$Res, _$RegisterModelImpl>
+    implements _$$RegisterModelImplCopyWith<$Res> {
+  __$$RegisterModelImplCopyWithImpl(
+      _$RegisterModelImpl _value, $Res Function(_$RegisterModelImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of RegisterModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? username = null,
+    Object? email = null,
+    Object? password = null,
+    Object? role = freezed,
+    Object? team = freezed,
+    Object? teamPassword = freezed,
+  }) {
+    return _then(_$RegisterModelImpl(
+      username: null == username
+          ? _value.username
+          : username // ignore: cast_nullable_to_non_nullable
+              as String,
+      email: null == email
+          ? _value.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      password: null == password
+          ? _value.password
+          : password // ignore: cast_nullable_to_non_nullable
+              as String,
+      role: freezed == role
+          ? _value.role
+          : role // ignore: cast_nullable_to_non_nullable
+              as String?,
+      team: freezed == team
+          ? _value.team
+          : team // ignore: cast_nullable_to_non_nullable
+              as String?,
+      teamPassword: freezed == teamPassword
+          ? _value.teamPassword
+          : teamPassword // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$RegisterModelImpl implements _RegisterModel {
+  const _$RegisterModelImpl(
+      {required this.username,
+      required this.email,
+      required this.password,
+      this.role,
+      this.team,
+      this.teamPassword});
+
+  factory _$RegisterModelImpl.fromJson(Map<String, dynamic> json) =>
+      _$$RegisterModelImplFromJson(json);
+
+  @override
+  final String username;
+  @override
+  final String email;
+  @override
+  final String password;
+  @override
+  final String? role;
+  @override
+  final String? team;
+  @override
+  final String? teamPassword;
+
+  @override
+  String toString() {
+    return 'RegisterModel(username: $username, email: $email, password: $password, role: $role, team: $team, teamPassword: $teamPassword)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$RegisterModelImpl &&
+            (identical(other.username, username) ||
+                other.username == username) &&
+            (identical(other.email, email) || other.email == email) &&
+            (identical(other.password, password) ||
+                other.password == password) &&
+            (identical(other.role, role) || other.role == role) &&
+            (identical(other.team, team) || other.team == team) &&
+            (identical(other.teamPassword, teamPassword) ||
+                other.teamPassword == teamPassword));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, username, email, password, role, team, teamPassword);
+
+  /// Create a copy of RegisterModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$RegisterModelImplCopyWith<_$RegisterModelImpl> get copyWith =>
+      __$$RegisterModelImplCopyWithImpl<_$RegisterModelImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$RegisterModelImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _RegisterModel implements RegisterModel {
+  const factory _RegisterModel(
+      {required final String username,
+      required final String email,
+      required final String password,
+      final String? role,
+      final String? team,
+      final String? teamPassword}) = _$RegisterModelImpl;
+
+  factory _RegisterModel.fromJson(Map<String, dynamic> json) =
+      _$RegisterModelImpl.fromJson;
+
+  @override
+  String get username;
+  @override
+  String get email;
+  @override
+  String get password;
+  @override
+  String? get role;
+  @override
+  String? get team;
+  @override
+  String? get teamPassword;
+
+  /// Create a copy of RegisterModel
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$RegisterModelImplCopyWith<_$RegisterModelImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}

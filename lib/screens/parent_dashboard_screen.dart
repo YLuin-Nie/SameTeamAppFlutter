@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:same_team_flutter/api_service.dart';
 
 class ParentDashboardScreen extends StatefulWidget {
   @override
@@ -10,204 +9,263 @@ class ParentDashboardScreen extends StatefulWidget {
 }
 
 class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
-  String? teamName;
-  List<dynamic> children = [];
-  List<dynamic> allChores = [];
-  List<dynamic> completedChores = [];
+  int currentUserId = -1;
+  int? currentTeamId;
+  String teamName = '';
+  List<User> children = [];
+  List<Chore> allChores = [];
+  List<Chore> completedChores = [];
   DateTime? selectedDate;
-
-  final List<int> thresholds = [0, 200, 400, 600, 1000, 10000];
-  final List<String> levels = ["Beginner", "Rising Star", "Helper Pro", "Superstar", "Legend"];
-  final List<Color> levelColors = [Colors.grey, Colors.green[200]!, Colors.blue[200]!, Colors.yellow[200]!, Colors.orange[200]!];
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _teamNameController = TextEditingController();
+  final TextEditingController _teamPasswordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    fetchDashboardData();
+    loadUser();
+  }
+
+  Future<void> loadUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    currentUserId = prefs.getInt('userId') ?? -1;
+    if (currentUserId != -1) {
+      fetchDashboardData();
+    }
   }
 
   Future<void> fetchDashboardData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final currentUser = jsonDecode(prefs.getString('user')!);
-
-    final userRes = await http.get(
-      Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Users'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (userRes.statusCode == 200) {
-      final users = jsonDecode(userRes.body);
-      final me = users.firstWhere((u) => u['userId'] == currentUser['userId']);
-      final teamId = me['teamId'];
+    try {
+      final users = await ApiService.fetchUsers();
+      final chores = await ApiService.fetchChores();
+      final completed = await ApiService.fetchCompletedChores();
+      final me = users.firstWhere((u) => u.userId == currentUserId);
 
       setState(() {
-        children = users.where((u) => u['role'] == 'Child' && u['teamId'] == teamId).toList();
+        currentTeamId = me.teamId;
+        teamName = me.teamName ?? '';
+        children = users.where((u) => u.role == 'Child' && u.teamId == me.teamId).toList();
+        allChores = chores;
+        completedChores = completed;
       });
-
-      // Get team name
-      final teamRes = await http.get(
-        Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Users/team/$teamId'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-      if (teamRes.statusCode == 200) {
-        setState(() {
-          teamName = jsonDecode(teamRes.body)['teamName'];
-        });
-      }
-
-      // Get chores
-      final choreRes = await http.get(
-        Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Chores'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-      final completeRes = await http.get(
-        Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Chores/completed'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (choreRes.statusCode == 200 && completeRes.statusCode == 200) {
-        setState(() {
-          allChores = jsonDecode(choreRes.body);
-          completedChores = jsonDecode(completeRes.body);
-        });
-      }
+    } catch (e) {
+      showToast('Error loading dashboard: $e');
     }
+  }
+
+  void showToast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  void showCreateTeamDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("Create Team"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: _teamNameController, decoration: InputDecoration(labelText: 'Team Name')),
+            TextField(controller: _teamPasswordController, decoration: InputDecoration(labelText: 'Password')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              try {
+                final team = await ApiService.createTeam(currentUserId, _teamNameController.text, _teamPasswordController.text);
+                showToast("Team created: ${team.teamName}");
+                fetchDashboardData();
+                Navigator.pop(context);
+              } catch (e) {
+                showToast("Create team failed: $e");
+              }
+            },
+            child: Text("Create"),
+          )
+        ],
+      ),
+    );
+  }
+
+  void showJoinTeamDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("Join Team"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: _teamNameController, decoration: InputDecoration(labelText: 'Team Name')),
+            TextField(controller: _teamPasswordController, decoration: InputDecoration(labelText: 'Password')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              try {
+                final team = await ApiService.joinTeam(currentUserId, _teamNameController.text, _teamPasswordController.text);
+                showToast("Joined team: ${team.teamName}");
+                fetchDashboardData();
+                Navigator.pop(context);
+              } catch (e) {
+                showToast("Join team failed: $e");
+              }
+            },
+            child: Text("Join"),
+          )
+        ],
+      ),
+    );
+  }
+
+  void showAddToTeamDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("Add User to Team"),
+        content: TextField(
+          controller: _emailController,
+          decoration: InputDecoration(labelText: 'User Email'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              try {
+                if (currentTeamId != null) {
+                  await ApiService.addUserToTeam(_emailController.text, currentTeamId!);
+                  showToast("User added to team");
+                  fetchDashboardData();
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                showToast("Failed to add user: $e");
+              }
+            },
+            child: Text("Add"),
+          )
+        ],
+      ),
+    );
   }
 
   int getLevelIndex(int points) {
-    for (int i = 0; i < thresholds.length; i++) {
-      if (points < thresholds[i]) return i - 1 >= 0 ? i - 1 : 0;
-    }
-    return levels.length - 1;
+    final thresholds = [0, 200, 400, 600, 1000, 10000];
+    return thresholds.indexWhere((t) => points < t) - 1;
   }
 
-  List<dynamic> getFilteredChores() {
-    final userIds = children.map((c) => c['userId']).toList();
+  Color getLevelColor(int levelIndex) {
+    final colors = [
+      Colors.grey,
+      Colors.green[100],
+      Colors.blue[100],
+      Colors.yellow[100],
+      Colors.orange[100],
+    ];
+    return colors[levelIndex] ?? Colors.grey;
+  }
+
+  List<Chore> getFilteredChores() {
+    final now = DateTime.now();
+    final end = now.add(Duration(days: 6));
+    final ids = children.map((e) => e.userId).toList();
+
     return allChores.where((chore) {
-      if (chore['completed'] == true) return false;
-      if (!userIds.contains(chore['assignedTo'])) return false;
+      final assignedDate = DateTime.parse(chore.dateAssigned);
+      final matchTeam = ids.contains(chore.assignedTo);
+      final inRange = selectedDate != null
+          ? assignedDate.year == selectedDate!.year &&
+          assignedDate.month == selectedDate!.month &&
+          assignedDate.day == selectedDate!.day
+          : assignedDate.isAfter(now.subtract(Duration(days: 1))) &&
+          assignedDate.isBefore(end.add(Duration(days: 1)));
 
-      final date = DateTime.parse(chore['dateAssigned']);
-      if (selectedDate != null) {
-        return date.year == selectedDate!.year &&
-            date.month == selectedDate!.month &&
-            date.day == selectedDate!.day;
-      }
-
-      final now = DateTime.now();
-      return date.isAfter(now.subtract(Duration(days: 1))) &&
-          date.isBefore(now.add(Duration(days: 7)));
+      return matchTeam && !chore.completed && inRange;
     }).toList();
+  }
+
+  Future<void> logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Parent Dashboard")),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Team: ${teamName ?? 'Loading...'}", style: TextStyle(fontSize: 18)),
-
+            Text("Team: $teamName", style: TextStyle(fontSize: 18)),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                ElevatedButton(onPressed: () {}, child: Text("Create")),
-                ElevatedButton(onPressed: () {}, child: Text("Join")),
-                ElevatedButton(onPressed: () {}, child: Text("Add")),
+                ElevatedButton(onPressed: showCreateTeamDialog, child: Text("Create Team")),
+                SizedBox(width: 8),
+                ElevatedButton(onPressed: showJoinTeamDialog, child: Text("Join Team")),
+                SizedBox(width: 8),
+                ElevatedButton(onPressed: showAddToTeamDialog, child: Text("Add to Team")),
               ],
             ),
             SizedBox(height: 16),
-
-            Text("Children Levels", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text("Children Levels", style: TextStyle(fontWeight: FontWeight.bold)),
             ...children.map((child) {
-              final points = completedChores
-                  .where((c) => c['assignedTo'] == child['userId'])
-                  .fold<int>(0, (sum, c) => sum + (c['points'] as num).toInt());
-              final levelIndex = getLevelIndex(points);
-
+              int points = completedChores.where((c) => c.assignedTo == child.userId).fold(0, (sum, c) => sum + c.points);
+              int levelIndex = getLevelIndex(points);
               return Container(
-                margin: EdgeInsets.symmetric(vertical: 8),
-                padding: EdgeInsets.all(12),
-                color: levelColors[levelIndex],
+                color: getLevelColor(levelIndex),
+                margin: EdgeInsets.symmetric(vertical: 4),
+                padding: EdgeInsets.all(8),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("${child['username']} - Level ${levelIndex + 1} (${levels[levelIndex]}) - $points pts"),
+                    Expanded(child: Text("${child.username} - Level ${levelIndex + 1} - $points pts")),
                     IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () {
-                        // TODO: Remove child from team
+                      icon: Icon(Icons.close),
+                      onPressed: () async {
+                        try {
+                          await ApiService.removeUserFromTeam(child.userId);
+                          showToast("Removed ${child.username}");
+                          fetchDashboardData();
+                        } catch (e) {
+                          showToast("Failed to remove user: $e");
+                        }
                       },
                     )
                   ],
                 ),
               );
             }).toList(),
-
             SizedBox(height: 16),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: () async {
-                    DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                      setState(() => selectedDate = picked);
-                    }
-                  },
-                  child: Text("Select Date"),
-                ),
-                SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() => selectedDate = null);
-                  },
-                  child: Text("Clear Date"),
-                ),
-              ],
-            ),
-            SizedBox(height: 10),
-            Text(
-              selectedDate == null
-                  ? "Upcoming Chores (Next 7 Days)"
-                  : "Chores for ${DateFormat('yyyy-MM-dd').format(selectedDate!)}",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            Text("Upcoming Chores", style: TextStyle(fontWeight: FontWeight.bold)),
             ...getFilteredChores().map((chore) {
-              final assigned = children.firstWhere((c) => c['userId'] == chore['assignedTo'], orElse: () => null);
-              return Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  "${chore['choreText']} - ${chore['dateAssigned']} - ${assigned?['username'] ?? 'Unknown'} (${chore['points']} pts)",
-                ),
+              final user = children.firstWhere((u) => u.userId == chore.assignedTo, orElse: () => User(userId: 0, username: 'Unknown', role: 'Child'));
+              return ListTile(
+                title: Text('${chore.choreText}'),
+                subtitle: Text('${chore.dateAssigned} - ${user.username} (${chore.points} pts)'),
               );
-            }),
-
-            SizedBox(height: 20),
+            }).toList(),
+            SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(onPressed: () {}, child: Text("Dashboard")),
-                ElevatedButton(onPressed: () {}, child: Text("Add Chore")),
-                ElevatedButton(onPressed: () {}, child: Text("Rewards")),
-                ElevatedButton(
-                  onPressed: () async {
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.clear();
-                    Navigator.pushReplacementNamed(context, '/login');
-                  },
-                  child: Text("Logout"),
-                ),
+                ElevatedButton(onPressed: () => setState(() => selectedDate = null), child: Text("Clear Date")),
+                ElevatedButton(onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) setState(() => selectedDate = picked);
+                }, child: Text("Select Date")),
+                ElevatedButton(onPressed: logout, child: Text("Log Out")),
               ],
-            ),
+            )
           ],
         ),
       ),
