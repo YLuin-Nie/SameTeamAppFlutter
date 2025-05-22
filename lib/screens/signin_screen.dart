@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart'; // ✅ Relative import
+import 'dart:convert';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -8,33 +10,70 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final ApiService apiService = ApiService();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
+  String _errorMessage = '';
 
-  void _togglePasswordVisibility() {
+  void _login() async {
     setState(() {
-      _obscurePassword = !_obscurePassword;
+      _isLoading = true;
+      _errorMessage = '';
     });
-  }
 
-  void _signIn() {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    final email = emailController.text.trim();
+    final password = passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all fields")),
-      );
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Please enter both email and password.';
+      });
       return;
     }
 
-    // TODO: Call API here using http or retrofit.dart
-    print("Sign in with Email: $email, Password: $password");
-  }
+    try {
+      final response = await apiService.login(email, password);
 
-  void _redirectToSignUp() {
-    Navigator.pushNamed(context, '/signup'); // define this in your routes
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final token = data['token'];
+        final username = data['username'];
+        final role = data['role']; // Make sure backend returns this
+
+        print('Login successful: $token');
+
+        if (!mounted) return;
+
+        // ✅ Role-based redirection
+        if (role == 'Parent') {
+          Navigator.pushNamed(context, '/dashboard', arguments: {
+            'token': token,
+            'username': username,
+            'role': role,
+          });
+        } else {
+          Navigator.pushNamed(context, '/childDashboard', arguments: {
+            'token': token,
+            'username': username,
+            'role': role,
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Login failed: ${response.body}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'An error occurred: $e';
+      });
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -42,43 +81,30 @@ class _SignInScreenState extends State<SignInScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Sign In')),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
             TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-              ),
+              controller: emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
               keyboardType: TextInputType.emailAddress,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             TextField(
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  ),
-                  onPressed: _togglePasswordVisibility,
-                ),
-              ),
+              controller: passwordController,
+              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: true,
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _signIn,
+            const SizedBox(height: 20),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+              onPressed: _login,
               child: const Text('Sign In'),
             ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: _redirectToSignUp,
-              child: const Text(
-                "Don't have an account? Sign up",
-                style: TextStyle(color: Colors.blue),
-              ),
-            ),
+            const SizedBox(height: 12),
+            if (_errorMessage.isNotEmpty)
+              Text(_errorMessage, style: const TextStyle(color: Colors.red)),
           ],
         ),
       ),
