@@ -11,9 +11,10 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       username: json['username'] as String,
       email: json['email'] as String,
       role: json['role'] as String,
-      points: (json['points'] as num).toInt(),
-      totalPoints: (json['totalPoints'] as num).toInt(),
+      points: (json['points'] as num?)?.toInt(),
+      totalPoints: (json['totalPoints'] as num?)?.toInt(),
       teamId: (json['teamId'] as num?)?.toInt(),
+      parentId: (json['parentId'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
@@ -25,4 +26,5 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'points': instance.points,
       'totalPoints': instance.totalPoints,
       'teamId': instance.teamId,
+      'parentId': instance.parentId,
     };

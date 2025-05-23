@@ -1,55 +1,54 @@
 import 'package:flutter/material.dart';
-import 'signin_screen.dart';
+import '../models/login_models.dart';
 import '../services/api_service.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({Key? key}) : super(key: key);
+  const SignUpScreen({super.key});
 
   @override
-  _SignUpScreenState createState() => _SignUpScreenState();
+  State<SignUpScreen> createState() => _SignupScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _SignupScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
+
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
   String _selectedRole = 'Parent';
   bool _isLoading = false;
 
-  Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      try {
-        final response = await ApiService.registerUser(
-          username: _usernameController.text.trim(),
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          role: _selectedRole,
-          team: '', // Removed from UI, passed as empty
-          teamPassword: '', // Removed from UI, passed as empty
-        );
+  Future<void> _handleSignup() async {
+    if (!_formKey.currentState!.validate()) return;
 
-        if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Registration successful!')),
-          );
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const SignInScreen()),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Registration failed: ${response.body}')),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred: $e')),
-        );
-      } finally {
-        setState(() => _isLoading = false);
-      }
+    final registerModel = RegisterModel(
+      username: _usernameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+      role: _selectedRole,
+      team: null,
+      teamPassword: null,
+    );
+
+    setState(() => _isLoading = true);
+
+    try {
+      await ApiService.register(registerModel);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account created successfully! Please sign in.')),
+      );
+
+      Future.delayed(const Duration(milliseconds: 500), () {
+        Navigator.pop(context); // Navigate back to SignInScreen
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Signup failed: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -57,58 +56,53 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Create Account')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
             children: [
               TextFormField(
                 controller: _usernameController,
                 decoration: const InputDecoration(labelText: 'Username'),
-                validator: (value) => value!.isEmpty ? 'Enter username' : null,
+                validator: (value) => value!.isEmpty ? 'Enter a username' : null,
               ),
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) => value!.isEmpty ? 'Enter email' : null,
+                validator: (value) => value!.isEmpty ? 'Enter an email' : null,
               ),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
                 obscureText: true,
-                validator: (value) =>
-                value!.length < 6 ? 'Minimum 6 characters' : null,
+                decoration: const InputDecoration(labelText: 'Password'),
+                validator: (value) => value!.length < 6 ? 'Password too short' : null,
               ),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _selectedRole,
-                decoration: const InputDecoration(labelText: 'Role'),
                 items: const [
                   DropdownMenuItem(value: 'Parent', child: Text('Parent')),
                   DropdownMenuItem(value: 'Child', child: Text('Child')),
                 ],
                 onChanged: (value) {
-                  setState(() {
-                    _selectedRole = value!;
-                  });
+                  if (value != null) setState(() => _selectedRole = value);
                 },
+                decoration: const InputDecoration(labelText: 'Role'),
               ),
-              const SizedBox(height: 20),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                onPressed: _submitForm,
-                child: const Text('Create Account'),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _handleSignup,
+                child: const Text('Sign Up'),
               ),
+              const SizedBox(height: 16),
               TextButton(
                 onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SignInScreen()),
-                  );
+                  Navigator.pop(context);
                 },
-                child: const Text('Already have an account? Sign In'),
+                child: const Text('Already have an account? Sign in'),
               ),
             ],
           ),

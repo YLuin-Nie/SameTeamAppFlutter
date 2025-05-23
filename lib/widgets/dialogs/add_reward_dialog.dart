@@ -1,33 +1,25 @@
 import 'package:flutter/material.dart';
 
-Future<void> showAddRewardDialog(
-    BuildContext context, {
-      required void Function(String name, int cost) onSubmit,
-    }) {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController costController = TextEditingController();
+class AddRewardDialog extends StatelessWidget {
+  const AddRewardDialog({super.key});
 
-  return showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text("Add New Reward"),
+  @override
+  Widget build(BuildContext context) {
+    final TextEditingController rewardNameController = TextEditingController();
+    final TextEditingController rewardPointsController = TextEditingController();
+
+    return AlertDialog(
+      title: const Text('Add Reward'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
-            controller: nameController,
-            decoration: InputDecoration(
-              hintText: "Reward Name",
-              border: OutlineInputBorder(),
-            ),
+            controller: rewardNameController,
+            decoration: const InputDecoration(labelText: 'Reward Name'),
           ),
-          SizedBox(height: 12),
           TextField(
-            controller: costController,
-            decoration: InputDecoration(
-              hintText: "Cost (points)",
-              border: OutlineInputBorder(),
-            ),
+            controller: rewardPointsController,
+            decoration: const InputDecoration(labelText: 'Reward Points'),
             keyboardType: TextInputType.number,
           ),
         ],
@@ -35,24 +27,16 @@ Future<void> showAddRewardDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text("Cancel"),
+          child: const Text('Cancel'),
         ),
-        ElevatedButton(
+        TextButton(
           onPressed: () {
-            final name = nameController.text.trim();
-            final cost = int.tryParse(costController.text.trim()) ?? 0;
-            if (name.isNotEmpty && cost > 0) {
-              onSubmit(name, cost);
-              Navigator.pop(context);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Please enter valid name and cost.")),
-              );
-            }
+            // You can hook up API call logic here
+            Navigator.pop(context);
           },
-          child: Text("Add Reward"),
-        ),
+          child: const Text('Add'),
+        )
       ],
-    ),
-  );
+    );
+  }
 }

@@ -24,9 +24,10 @@ mixin _$User {
   String get username => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
   String get role => throw _privateConstructorUsedError;
-  int get points => throw _privateConstructorUsedError;
-  int get totalPoints => throw _privateConstructorUsedError;
+  int? get points => throw _privateConstructorUsedError;
+  int? get totalPoints => throw _privateConstructorUsedError;
   int? get teamId => throw _privateConstructorUsedError;
+  int? get parentId => throw _privateConstructorUsedError;
 
   /// Serializes this User to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -47,9 +48,10 @@ abstract class $UserCopyWith<$Res> {
       String username,
       String email,
       String role,
-      int points,
-      int totalPoints,
-      int? teamId});
+      int? points,
+      int? totalPoints,
+      int? teamId,
+      int? parentId});
 }
 
 /// @nodoc
@@ -71,9 +73,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? username = null,
     Object? email = null,
     Object? role = null,
-    Object? points = null,
-    Object? totalPoints = null,
+    Object? points = freezed,
+    Object? totalPoints = freezed,
     Object? teamId = freezed,
+    Object? parentId = freezed,
   }) {
     return _then(_value.copyWith(
       userId: null == userId
@@ -92,17 +95,21 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.role
           : role // ignore: cast_nullable_to_non_nullable
               as String,
-      points: null == points
+      points: freezed == points
           ? _value.points
           : points // ignore: cast_nullable_to_non_nullable
-              as int,
-      totalPoints: null == totalPoints
+              as int?,
+      totalPoints: freezed == totalPoints
           ? _value.totalPoints
           : totalPoints // ignore: cast_nullable_to_non_nullable
-              as int,
+              as int?,
       teamId: freezed == teamId
           ? _value.teamId
           : teamId // ignore: cast_nullable_to_non_nullable
+              as int?,
+      parentId: freezed == parentId
+          ? _value.parentId
+          : parentId // ignore: cast_nullable_to_non_nullable
               as int?,
     ) as $Val);
   }
@@ -120,9 +127,10 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       String username,
       String email,
       String role,
-      int points,
-      int totalPoints,
-      int? teamId});
+      int? points,
+      int? totalPoints,
+      int? teamId,
+      int? parentId});
 }
 
 /// @nodoc
@@ -141,9 +149,10 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? username = null,
     Object? email = null,
     Object? role = null,
-    Object? points = null,
-    Object? totalPoints = null,
+    Object? points = freezed,
+    Object? totalPoints = freezed,
     Object? teamId = freezed,
+    Object? parentId = freezed,
   }) {
     return _then(_$UserImpl(
       userId: null == userId
@@ -162,17 +171,21 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.role
           : role // ignore: cast_nullable_to_non_nullable
               as String,
-      points: null == points
+      points: freezed == points
           ? _value.points
           : points // ignore: cast_nullable_to_non_nullable
-              as int,
-      totalPoints: null == totalPoints
+              as int?,
+      totalPoints: freezed == totalPoints
           ? _value.totalPoints
           : totalPoints // ignore: cast_nullable_to_non_nullable
-              as int,
+              as int?,
       teamId: freezed == teamId
           ? _value.teamId
           : teamId // ignore: cast_nullable_to_non_nullable
+              as int?,
+      parentId: freezed == parentId
+          ? _value.parentId
+          : parentId // ignore: cast_nullable_to_non_nullable
               as int?,
     ));
   }
@@ -186,9 +199,10 @@ class _$UserImpl implements _User {
       required this.username,
       required this.email,
       required this.role,
-      required this.points,
-      required this.totalPoints,
-      this.teamId});
+      this.points,
+      this.totalPoints,
+      this.teamId,
+      this.parentId});
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
@@ -202,15 +216,17 @@ class _$UserImpl implements _User {
   @override
   final String role;
   @override
-  final int points;
+  final int? points;
   @override
-  final int totalPoints;
+  final int? totalPoints;
   @override
   final int? teamId;
+  @override
+  final int? parentId;
 
   @override
   String toString() {
-    return 'User(userId: $userId, username: $username, email: $email, role: $role, points: $points, totalPoints: $totalPoints, teamId: $teamId)';
+    return 'User(userId: $userId, username: $username, email: $email, role: $role, points: $points, totalPoints: $totalPoints, teamId: $teamId, parentId: $parentId)';
   }
 
   @override
@@ -226,13 +242,15 @@ class _$UserImpl implements _User {
             (identical(other.points, points) || other.points == points) &&
             (identical(other.totalPoints, totalPoints) ||
                 other.totalPoints == totalPoints) &&
-            (identical(other.teamId, teamId) || other.teamId == teamId));
+            (identical(other.teamId, teamId) || other.teamId == teamId) &&
+            (identical(other.parentId, parentId) ||
+                other.parentId == parentId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType, userId, username, email, role, points, totalPoints, teamId);
+  int get hashCode => Object.hash(runtimeType, userId, username, email, role,
+      points, totalPoints, teamId, parentId);
 
   /// Create a copy of User
   /// with the given fields replaced by the non-null parameter values.
@@ -256,9 +274,10 @@ abstract class _User implements User {
       required final String username,
       required final String email,
       required final String role,
-      required final int points,
-      required final int totalPoints,
-      final int? teamId}) = _$UserImpl;
+      final int? points,
+      final int? totalPoints,
+      final int? teamId,
+      final int? parentId}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
@@ -271,11 +290,13 @@ abstract class _User implements User {
   @override
   String get role;
   @override
-  int get points;
+  int? get points;
   @override
-  int get totalPoints;
+  int? get totalPoints;
   @override
   int? get teamId;
+  @override
+  int? get parentId;
 
   /// Create a copy of User
   /// with the given fields replaced by the non-null parameter values.

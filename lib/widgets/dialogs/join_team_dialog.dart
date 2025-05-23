@@ -1,66 +1,53 @@
 import 'package:flutter/material.dart';
 
-Future<void> showJoinTeamDialog(
-    BuildContext context, {
-      required void Function(String teamName, String teamPassword) onSubmit,
-    }) async {
-  final TextEditingController teamNameController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  bool isPasswordVisible = false;
+class JoinTeamDialog extends StatelessWidget {
+  const JoinTeamDialog({super.key});
 
-  await showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text("Join Team", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: teamNameController,
-                decoration: InputDecoration(
-                  hintText: "Team Name",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              SizedBox(height: 12),
-              TextField(
-                controller: passwordController,
-                obscureText: !isPasswordVisible,
-                decoration: InputDecoration(
-                  hintText: "Team Password",
-                  border: OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () => setState(() => isPasswordVisible = !isPasswordVisible),
-                  ),
-                ),
-              ),
-            ],
+  @override
+  Widget build(BuildContext context) {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    bool obscureText = true;
+
+    return AlertDialog(
+      title: const Text('Join Team'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: nameController,
+            decoration: const InputDecoration(labelText: 'Team Name'),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
-            ElevatedButton(
-              onPressed: () {
-                final name = teamNameController.text.trim();
-                final password = passwordController.text.trim();
-                if (name.isNotEmpty && password.isNotEmpty) {
-                  onSubmit(name, password);
-                  Navigator.pop(context);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Please fill in both fields.")),
-                  );
-                }
-              },
-              child: Text("Submit"),
+          StatefulBuilder(
+            builder: (context, setState) => TextField(
+              controller: passwordController,
+              obscureText: obscureText,
+              decoration: InputDecoration(
+                labelText: 'Team Password',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    obscureText ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () => setState(() => obscureText = !obscureText),
+                ),
+              ),
             ),
-          ],
+          )
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
         ),
-      );
-    },
-  );
+        TextButton(
+          onPressed: () {
+            // Hook up API call logic here
+            Navigator.pop(context);
+          },
+          child: const Text('Join'),
+        )
+      ],
+    );
+  }
 }
