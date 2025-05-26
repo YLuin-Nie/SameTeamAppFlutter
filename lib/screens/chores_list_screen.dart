@@ -172,7 +172,7 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
       data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Child Dashboard'),
+          title: const Text('Chores List'),
           actions: [
             Row(
               children: [

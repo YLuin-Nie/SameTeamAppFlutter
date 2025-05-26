@@ -216,9 +216,7 @@ class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _bottomButton('Dashboard', () {
-              setState(() {}); // Refresh dashboard
-            }),
+            _bottomButton('Dashboard', _goToParentDashbaordScreen),
             _bottomButton('Add Chore', _goToAddChoreScreen),
             _bottomButton('Rewards', _goToRewardsScreen),
             _bottomButton('Log Out', _logout),
