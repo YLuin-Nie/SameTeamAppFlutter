@@ -17,6 +17,16 @@ class _SigninScreenState extends State<SignInScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // ✅ Dark mode state
+  bool _isDarkMode = false;
+
+  // ✅ Dark mode toggle method
+  void _toggleTheme(bool value) {
+    setState(() {
+      _isDarkMode = value;
+    });
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -51,55 +61,78 @@ class _SigninScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Sign In')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (value) => value!.isEmpty ? 'Enter your email' : null,
-              ),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+    return Theme(
+        data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Sign In'),
+            actions: [
+              Row(
+                children: [
+                  const Text("🌙", style: TextStyle(fontSize: 16)),
+                  Switch(
+                    value: _isDarkMode,
+                    onChanged: _toggleTheme,
                   ),
-                ),
-                validator: (value) => value!.isEmpty ? 'Enter your password' : null,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _handleLogin,
-                child: const Text('Sign In'),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/signup');
-                },
-                child: const Text('Don’t have an account? Sign Up'),
+                ],
               ),
             ],
           ),
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    validator: (value) =>
+                    value!.isEmpty
+                        ? 'Enter your email'
+                        : null,
+                  ),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility : Icons
+                              .visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                    ),
+                    validator: (value) =>
+                    value!.isEmpty
+                        ? 'Enter your password'
+                        : null,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _handleLogin,
+                    child: const Text('Sign In'),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/signup');
+                    },
+                    child: const Text('Don’t have an account? Sign Up'),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
     );
   }
 }

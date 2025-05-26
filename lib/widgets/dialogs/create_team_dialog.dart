@@ -1,52 +1,60 @@
 import 'package:flutter/material.dart';
 
-class CreateTeamDialog extends StatelessWidget {
+class CreateTeamDialog extends StatefulWidget {
   const CreateTeamDialog({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
-    bool obscureText = true;
+  State<CreateTeamDialog> createState() => _CreateTeamDialogState();
+}
 
+class _CreateTeamDialogState extends State<CreateTeamDialog> {
+  final TextEditingController _teamNameController = TextEditingController();
+  final TextEditingController _teamPasswordController = TextEditingController();
+
+  void _submitData() {
+    final name = _teamNameController.text.trim();
+    final pass = _teamPasswordController.text.trim();
+
+    if (name.isEmpty || pass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("All fields must be filled")),
+      );
+      return;
+    }
+
+    Navigator.of(context).pop({
+      'teamName': name,
+      'teamPassword': pass,
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Create Team'),
+      title: const Text("Create Team"),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
-            controller: nameController,
+            controller: _teamNameController,
             decoration: const InputDecoration(labelText: 'Team Name'),
           ),
-          StatefulBuilder(
-            builder: (context, setState) => TextField(
-              controller: passwordController,
-              obscureText: obscureText,
-              decoration: InputDecoration(
-                labelText: 'Team Password',
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    obscureText ? Icons.visibility_off : Icons.visibility,
-                  ),
-                  onPressed: () => setState(() => obscureText = !obscureText),
-                ),
-              ),
-            ),
-          )
+          TextField(
+            controller: _teamPasswordController,
+            decoration: const InputDecoration(labelText: 'Team Password'),
+            obscureText: true,
+          ),
         ],
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text("Cancel"),
         ),
-        TextButton(
-          onPressed: () {
-            // You can hook up API logic here
-            Navigator.pop(context);
-          },
-          child: const Text('Create'),
-        )
+        ElevatedButton(
+          onPressed: _submitData,
+          child: const Text("Create"),
+        ),
       ],
     );
   }

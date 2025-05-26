@@ -1,107 +1,117 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import '../../models/chore_model.dart';
+import '../../models/user_model.dart';
 
-Future<void> showEditChoreDialog(
-    BuildContext context, {
-      required String initialName,
-      required int initialPoints,
-      required String initialDate,
-      required int initialAssignedUserId,
-      required List<Map<String, dynamic>> children, // [{userId: 1, username: "LuLu"}]
-      required void Function(String name, int points, String date, int assignedTo) onSubmit,
-    }) async {
-  final nameController = TextEditingController(text: initialName);
-  final pointsController = TextEditingController(text: initialPoints.toString());
-  final dateController = TextEditingController(text: initialDate);
+class EditChoreDialog extends StatefulWidget {
+  final Chore chore;
+  final List<User> children;
+  final String initialName;
+  final int initialPoints;
+  final String initialDate;
+  final int initialAssignedUserId;
+  final Function(Chore updatedChore) onSubmit;
 
-  int selectedChildId = initialAssignedUserId;
+  const EditChoreDialog({
+    super.key,
+    required this.chore,
+    required this.children,
+    required this.initialName,
+    required this.initialPoints,
+    required this.initialDate,
+    required this.initialAssignedUserId,
+    required this.onSubmit,
+  });
 
-  await showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text("Edit Chore"),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: nameController,
-            decoration: InputDecoration(
-              hintText: "Chore Name",
-              border: OutlineInputBorder(),
+  @override
+  State<EditChoreDialog> createState() => _EditChoreDialogState();
+}
+
+class _EditChoreDialogState extends State<EditChoreDialog> {
+  late TextEditingController nameController;
+  late TextEditingController pointsController;
+  late TextEditingController dateController;
+  late int selectedUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(text: widget.initialName);
+    pointsController = TextEditingController(text: widget.initialPoints.toString());
+    dateController = TextEditingController(text: widget.initialDate);
+    selectedUserId = widget.initialAssignedUserId;
+  }
+
+  void showDatePickerDialog() async {
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.tryParse(widget.initialDate) ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      dateController.text = picked.toIso8601String().split('T').first;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Chore'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Chore Name'),
             ),
-          ),
-          SizedBox(height: 8),
-          TextField(
-            controller: pointsController,
-            decoration: InputDecoration(
-              hintText: "Points",
-              border: OutlineInputBorder(),
+            TextField(
+              controller: pointsController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Points'),
             ),
-            keyboardType: TextInputType.number,
-          ),
-          SizedBox(height: 8),
-          TextField(
-            controller: dateController,
-            readOnly: true,
-            decoration: InputDecoration(
-              hintText: "Date",
-              border: OutlineInputBorder(),
-              suffixIcon: Icon(Icons.calendar_today),
+            TextField(
+              controller: dateController,
+              readOnly: true,
+              decoration: const InputDecoration(labelText: 'Date Assigned'),
+              onTap: showDatePickerDialog,
             ),
-            onTap: () async {
-              DateTime? picked = await showDatePicker(
-                context: context,
-                initialDate: DateTime.tryParse(initialDate) ?? DateTime.now(),
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2100),
-              );
-              if (picked != null) {
-                dateController.text = DateFormat('yyyy-MM-dd').format(picked);
-              }
-            },
-          ),
-          SizedBox(height: 8),
-          DropdownButtonFormField<int>(
-            value: selectedChildId,
-            items: children.map((child) {
-              return DropdownMenuItem<int>(
-                value: child['userId'],
-                child: Text(child['username']),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) selectedChildId = value;
-            },
-            decoration: InputDecoration(
-              hintText: "Assign To",
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ],
+            DropdownButton<int>(
+              value: selectedUserId,
+              items: widget.children.map((user) {
+                return DropdownMenuItem<int>(
+                  value: user.userId,
+                  child: Text(user.username),
+                );
+              }).toList(),
+              onChanged: (int? value) {
+                setState(() {
+                  selectedUserId = value ?? widget.initialAssignedUserId;
+                });
+              },
+            )
+          ],
+        ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("Cancel"),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: () {
-            final name = nameController.text.trim();
-            final points = int.tryParse(pointsController.text.trim()) ?? 0;
-            final date = dateController.text.trim();
-
-            if (name.isNotEmpty && points > 0 && date.isNotEmpty) {
-              onSubmit(name, points, date, selectedChildId);
-              Navigator.pop(context);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Please fill out all fields.")),
-              );
-            }
+            final updated = widget.chore.copyWith(
+              choreText: nameController.text.trim(),
+              points: int.tryParse(pointsController.text.trim()) ?? widget.chore.points,
+              dateAssigned: dateController.text.trim(),
+              assignedTo: selectedUserId,
+            );
+            widget.onSubmit(updated);
+            Navigator.of(context).pop();
           },
-          child: Text("Save"),
-        ),
+          child: const Text('Save'),
+        )
       ],
-    ),
-  );
+    );
+  }
 }

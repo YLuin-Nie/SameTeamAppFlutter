@@ -4,6 +4,9 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ParentRewardsScreen extends StatefulWidget {
+  final int userId;
+  const ParentRewardsScreen({super.key, required this.userId});
+
   @override
   _ParentRewardsScreenState createState() => _ParentRewardsScreenState();
 }
@@ -12,6 +15,63 @@ class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
   List<dynamic> _children = [];
   List<dynamic> _rewards = [];
   Map<String, List<dynamic>> _redeemedMap = {};
+  // 🌙 Track dark mode state
+  bool _isDarkMode = false;
+
+  // 🌙 Toggle dark mode on or off
+  void _toggleTheme(bool value) {
+    setState(() {
+      _isDarkMode = value;
+    });
+  }
+  // Helper widget to create each bottom button with icon and label
+  Widget _bottomButton(String label, VoidCallback onPressed) {
+    return TextButton(
+      onPressed: onPressed,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_getIconForLabel(label)),
+          Text(label, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  // Returns the correct icon based on the label
+  IconData _getIconForLabel(String label) {
+    switch (label) {
+      case 'Dashboard':
+        return Icons.dashboard;
+      case 'Add Chore':
+        return Icons.add;
+      case 'Rewards':
+        return Icons.card_giftcard;
+      case 'Log Out':
+        return Icons.logout;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  // Navigates to Parent Dashboard screen
+  void _goToParentDashbaordScreen() {
+    Navigator.pushNamed(context, '/parentDashboard', arguments: widget.userId);
+  }
+  // Navigates to Add Chore screen
+  void _goToAddChoreScreen() {
+    Navigator.pushNamed(context, '/addChore', arguments: widget.userId);
+  }
+
+  // Navigates to Rewards screen
+  void _goToRewardsScreen() {
+    Navigator.pushNamed(context, '/parentRewards', arguments: widget.userId);
+  }
+
+  // Logs out and navigates to Sign In screen
+  void _logout() {
+    Navigator.pushReplacementNamed(context, '/signin');
+  }
 
   @override
   void initState() {
@@ -68,8 +128,23 @@ class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Parent Rewards')),
+    return Theme(
+        data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Reward Management'),
+            actions: [
+              Row(
+                children: [
+                  const Text("🌙", style: TextStyle(fontSize: 16)),
+                  Switch(
+                    value: _isDarkMode,
+                    onChanged: _toggleTheme,
+                  ),
+                ],
+              ),
+            ],
+          ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -78,19 +153,7 @@ class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
             // Navigation Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(onPressed: () {}, child: Text("Dashboard")),
-                ElevatedButton(onPressed: () {}, child: Text("Add Chore")),
-                ElevatedButton(onPressed: () {}, child: Text("Rewards")),
-                ElevatedButton(
-                  onPressed: () async {
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.clear();
-                    Navigator.pushReplacementNamed(context, '/login');
-                  },
-                  child: Text("Log Out"),
-                ),
-              ],
+              children: [],
             ),
             SizedBox(height: 20),
 
@@ -145,7 +208,24 @@ class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
           ],
         ),
       ),
-    );
+
+      // Bottom navigation bar using custom BottomAppBar with 4 buttons
+      bottomNavigationBar: BottomAppBar(
+        color: Colors.blueGrey[50],
+        shape: const CircularNotchedRectangle(),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _bottomButton('Dashboard', () {
+              setState(() {}); // Refresh dashboard
+            }),
+            _bottomButton('Add Chore', _goToAddChoreScreen),
+            _bottomButton('Rewards', _goToRewardsScreen),
+            _bottomButton('Log Out', _logout),
+          ],
+        ),
+      ),
+    ));
   }
 
   void _deleteReward(int rewardId) async {

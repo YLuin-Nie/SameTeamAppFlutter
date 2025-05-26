@@ -51,22 +51,50 @@ class ApiService {
 
   // ---------------- USERS ----------------
 
-  static Future<List<User>> fetchUsers() async {
-    final res = await http.get(Uri.parse('$baseUrl/Users'), headers: getHeaders(authorized: true));
-    if (res.statusCode != 200) throw ApiException('Failed to fetch users', res.statusCode);
-    return (jsonDecode(res.body) as List).map((e) => User.fromJson(e)).toList();
+  static Future<List<dynamic>> fetchUsers() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/Users'));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        print("Failed to fetch users: ${response.statusCode}");
+        return [];
+      }
+    } catch (e) {
+      print('Error in fetchUsers(): $e');
+      return [];
+    }
   }
 
-  static Future<User> getUser(int userId) async {
-    final res = await http.get(Uri.parse('$baseUrl/Users/$userId'), headers: getHeaders(authorized: true));
-    if (res.statusCode != 200) throw ApiException('Failed to get user', res.statusCode);
-    return User.fromJson(jsonDecode(res.body));
+
+  static Future<Map<String, dynamic>?> getUserById(int userId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/Users/$userId'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);  // ← returns Map
+      }
+    } catch (e) {
+      print("getUserById error: $e");
+    }
+    return null;
   }
 
-  static Future<Team> fetchTeam(int teamId) async {
-    final res = await http.get(Uri.parse('$baseUrl/Users/team/$teamId'), headers: getHeaders(authorized: true));
-    if (res.statusCode != 200) throw ApiException('Failed to fetch team', res.statusCode);
-    return Team.fromJson(jsonDecode(res.body));
+
+  static Future<Map<String, dynamic>> fetchTeam(int teamId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/Team/$teamId'));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        print("Failed to fetch team: ${response.statusCode}");
+        return {};
+      }
+    } catch (e) {
+      print('Error in fetchTeam(): $e');
+      return {};
+    }
   }
 
   static Future<void> updateUser(int userId, User user) async {
@@ -111,18 +139,23 @@ class ApiService {
     return Team.fromJson(jsonDecode(res.body));
   }
 
-  static Future<Team> createTeam(int userId, String teamName, String teamPassword) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/Users/createTeam'),
-      headers: getHeaders(authorized: true),
-      body: jsonEncode({
-        'userId': userId,
-        'teamName': teamName,
-        'teamPassword': teamPassword,
-      }),
-    );
-    if (res.statusCode != 200) throw ApiException('Failed to create team', res.statusCode);
-    return Team.fromJson(jsonDecode(res.body));
+  static Future<bool> createTeam(int userId, String teamName, String teamPassword) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/Users/createTeam'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'teamName': teamName,
+          'teamPassword': teamPassword,
+        }),
+      );
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print('Error creating team: $e');
+      return false;
+    }
   }
 
   static Future<void> removeUserFromTeam(int userId) async {
@@ -232,4 +265,6 @@ class ApiService {
     if (res.statusCode != 200 && res.statusCode != 201) throw ApiException('Failed to redeem reward', res.statusCode);
     return RedeemedReward.fromJson(jsonDecode(res.body));
   }
+
+
 }

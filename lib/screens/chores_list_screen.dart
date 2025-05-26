@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 
 class ChoresListScreen extends StatefulWidget {
+  final int userId;
+  const ChoresListScreen({super.key, required this.userId});
+
   @override
   _ChoresListScreenState createState() => _ChoresListScreenState();
 }
@@ -14,6 +17,65 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
   int points = 0;
   List<dynamic> allChores = [];
   List<dynamic> completedChores = [];
+
+
+  // 🌙 Track dark mode state
+  bool _isDarkMode = false;
+
+  // 🌙 Toggle dark mode on or off
+  void _toggleTheme(bool value) {
+    setState(() {
+      _isDarkMode = value;
+    });
+  }
+  // Helper widget to create each bottom button with icon and label
+  Widget _bottomButton(String label, VoidCallback onPressed) {
+    return TextButton(
+      onPressed: onPressed,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_getIconForLabel(label)),
+          Text(label, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  // Returns the correct icon based on the label
+  IconData _getIconForLabel(String label) {
+    switch (label) {
+      case 'Dashboard':
+        return Icons.dashboard;
+      case 'Chore List':
+        return Icons.add;
+      case 'Rewards':
+        return Icons.card_giftcard;
+      case 'Log Out':
+        return Icons.logout;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  // Navigates to Parent Dashboard screen
+  void _goToChildDashbaordScreen() {
+    Navigator.pushNamed(context, '/childDashboard', arguments: widget.userId);
+  }
+  // Navigates to Add Chore screen
+  void _goToChoreListScreen() {
+    Navigator.pushNamed(context, '/choresList', arguments: widget.userId);
+  }
+
+  // Navigates to Rewards screen
+  void _goToRewardsScreen() {
+    Navigator.pushNamed(context, '/childRewards', arguments: widget.userId);
+  }
+
+  // Logs out and navigates to Sign In screen
+  void _logout() {
+    Navigator.pushReplacementNamed(context, '/signin');
+  }
 
   @override
   void initState() {
@@ -106,8 +168,23 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Your Chores")),
+    return Theme(
+      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Child Dashboard'),
+          actions: [
+            Row(
+              children: [
+                const Text("🌙", style: TextStyle(fontSize: 16)),
+                Switch(
+                  value: _isDarkMode,
+                  onChanged: _toggleTheme,
+                ),
+              ],
+            ),
+          ],
+        ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -116,19 +193,7 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
             // Navigation
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(onPressed: () {}, child: Text("Dashboard")),
-                ElevatedButton(onPressed: () {}, child: Text("Chores")),
-                ElevatedButton(onPressed: () {}, child: Text("Rewards")),
-                ElevatedButton(
-                  onPressed: () async {
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.clear();
-                    Navigator.pushReplacementNamed(context, '/login');
-                  },
-                  child: Text("Logout"),
-                ),
-              ],
+              children: [],
             ),
             SizedBox(height: 20),
 
@@ -152,6 +217,20 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
           ],
         ),
       ),
-    );
+      // Bottom navigation bar using custom BottomAppBar with 4 buttons
+      bottomNavigationBar: BottomAppBar(
+        color: Colors.blueGrey[50],
+        shape: const CircularNotchedRectangle(),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _bottomButton('Dashboard', _goToChildDashbaordScreen),
+            _bottomButton('Chore List', _goToChoreListScreen),
+            _bottomButton('Rewards', _goToRewardsScreen),
+            _bottomButton('Log Out', _logout),
+          ],
+        ),
+      ),
+    ));
   }
 }

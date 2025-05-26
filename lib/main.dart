@@ -24,12 +24,15 @@ class MyApp extends StatelessWidget {
         '/signin': (context) => const SignInScreen(),
         '/signup': (context) => const SignUpScreen(),
         '/welcome': (context) => const WelcomeScreen(),
-        '/parentDashboard': (context) => ParentDashboardScreen(),
-        '/childDashboard': (context) => ChildDashboardScreen(),
-        '/addChore': (context) => AddChoreScreen(),
-        '/choresList': (context) => ChoresListScreen(),
-        '/childRewards': (context) => ChildRewardsScreen(),
-        '/parentRewards': (context) => ParentRewardsScreen(),
+        '/parentDashboard': (context) => ParentDashboardScreen(userId: 0,),
+        '/childDashboard': (context) => ChildDashboardScreen(userId: 0,),
+        '/addChore': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as int;
+          return AddChoreScreen(userId: args);
+        },
+        '/choresList': (context) => ChoresListScreen(userId: 0,),
+        '/childRewards': (context) => ChildRewardsScreen(userId: 0,),
+        '/parentRewards': (context) => ParentRewardsScreen(userId: 0,),
       },
     );
   }
