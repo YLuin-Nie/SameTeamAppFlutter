@@ -158,14 +158,29 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     );
   }
 
+  void _showJoinTeamDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return JoinTeamDialog(
+          userId: widget.userId,
+          refreshParent: _loadDashboard,
+        );
+      },
+    );
+  }
 
-//showDialog(context: context, builder: (_) => CreateTeamDialog(userId:0, refreshParent: () {  },));
-
-  void _showJoinTeamDialog() =>
-      showDialog(context: context, builder: (_) => const JoinTeamDialog());
-
-  void _showAddToTeamDialog() =>
-      showDialog(context: context, builder: (_) => const AddToTeamDialog());
+  void _showAddToTeamDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AddToTeamDialog(
+          userId: widget.userId,
+          refreshParent: _loadDashboard,
+        );
+      },
+    );
+  }
 
   Future<void> _loadDashboard() async {
     final prefs = await SharedPreferences.getInstance();

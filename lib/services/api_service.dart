@@ -112,31 +112,50 @@ class ApiService {
 
 
 
-  Future<Team> joinTeam(Map<String, dynamic> model) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/Users/joinTeam'),
-      headers: getHeaders(),
-      body: jsonEncode(model),
+  static Future<Map<String, dynamic>?> joinTeam(int userId, String teamName, String teamPassword) async {
+    final url = Uri.parse('$baseUrl/Users/joinTeam');
+    final body = jsonEncode({
+      'userId': userId,
+      'teamName': teamName,
+      'teamPassword': teamPassword,
+    });
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: body,
     );
-    if (res.statusCode == 200) {
-      return Team.fromJson(jsonDecode(res.body));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to join team: ${res.body}');
+      debugPrint('API error ${response.statusCode}: ${response.body}');
+      return null;
     }
   }
 
-  Future<User> addUserToTeam(Map<String, dynamic> model) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/Users/addUserToTeam'),
-      headers: getHeaders(),
-      body: jsonEncode(model),
+
+  static Future<bool> addUserToTeam(int teamId, String email) async {
+    final url = Uri.parse('$baseUrl/Users/addUserToTeam');
+    final body = jsonEncode({
+      'email': email,
+      'teamId': teamId,
+    });
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: body,
     );
-    if (res.statusCode == 200) {
-      return User.fromJson(jsonDecode(res.body));
+
+    if (response.statusCode == 200) {
+      return true;
     } else {
-      throw Exception('Failed to add user to team: ${res.body}');
+      debugPrint('API error ${response.statusCode}: ${response.body}');
+      return false;
     }
   }
+
 
   Future<void> removeUserFromTeam(int userId) async {
     final res = await http.post(Uri.parse('$baseUrl/Users/removeFromTeam/$userId'));
