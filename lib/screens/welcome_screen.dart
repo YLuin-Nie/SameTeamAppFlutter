@@ -52,7 +52,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const SignInScreen()),
+                      MaterialPageRoute(builder: (_) => const SignInScreen(userId: 0,)),
                     );
                   },
                   child: const Text('Sign In'),

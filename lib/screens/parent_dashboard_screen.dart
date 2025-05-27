@@ -1,15 +1,20 @@
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show DateFormat;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../widgets/dialogs/create_team_dialog.dart';
 import '../widgets/dialogs/join_team_dialog.dart';
 import '../widgets/dialogs/add_to_team_dialog.dart';
 import '../screens/add_chore_screen.dart';
 import '../screens/parent_rewards_screen.dart';
+import '../models/team_model.dart';
+import '../models/user_model.dart';
+import '../models/chore_model.dart';
+import '../models/level_model.dart';
 
 class ParentDashboardScreen extends StatefulWidget {
   final int userId;
-
   const ParentDashboardScreen({super.key, required this.userId});
 
   @override
@@ -18,6 +23,14 @@ class ParentDashboardScreen extends StatefulWidget {
 
 class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   DateTime? selectedDate;
+  String teamName = '';
+  int userId = -1;
+  List<User> children = [];
+  List<Chore> allChores = [];
+  DateTime? selectedChoreDate;
+  List<Chore> choresForSelectedDate = [];
+
+
   // 🌙 Track dark mode state
   bool _isDarkMode = false;
 
@@ -27,6 +40,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
       _isDarkMode = value;
     });
   }
+
   // Helper widget to create each bottom button with icon and label
   Widget _bottomButton(String label, VoidCallback onPressed) {
     return TextButton(
@@ -61,55 +75,205 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   void _goToParentDashbaordScreen() {
     Navigator.pushNamed(context, '/parentDashboard', arguments: widget.userId);
   }
+
   // Navigates to Add Chore screen
   void _goToAddChoreScreen() {
     Navigator.pushNamed(context, '/addChore', arguments: widget.userId);
   }
+
   // Navigates to Rewards screen
   void _goToRewardsScreen() {
     Navigator.pushNamed(context, '/parentRewards', arguments: widget.userId);
   }
+
   // Logs out and navigates to Sign In screen
   void _logout() {
     Navigator.pushReplacementNamed(context, '/signin');
   }
 
-  void _selectDate() async {
-    final DateTime? picked = await showDatePicker(
+  void displayChoresOnDate(DateTime selectedDate) {
+    final childUserIds = children.map((c) => c.userId).toSet();
+
+    final filtered = allChores.where((chore) {
+      if (chore.dateAssigned == null || chore.assignedTo == null)
+        return false;
+      final date = DateTime.tryParse(chore.dateAssigned!);
+      if (date == null) return false;
+
+      // Only compare Y-M-D part
+      final sameDay = date.year == selectedDate.year &&
+          date.month == selectedDate.month &&
+          date.day == selectedDate.day;
+
+      return sameDay && childUserIds.contains(chore.assignedTo);
+    }).toList();
+
+    setState(() {
+      selectedChoreDate = selectedDate;
+      choresForSelectedDate = filtered;
+    });
+  }
+
+  void _openDatePicker() async {
+    final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
+
     if (picked != null) {
-      setState(() => selectedDate = picked);
+      setState(() {
+        selectedDate = picked;
+      });
     }
   }
+
 
   void _clearDateFilter() {
     setState(() => selectedDate = null);
   }
 
-  void _showCreateTeamDialog() => showDialog(context: context, builder: (_) => const CreateTeamDialog());
-  void _showJoinTeamDialog() => showDialog(context: context, builder: (_) => const JoinTeamDialog());
-  void _showAddToTeamDialog() => showDialog(context: context, builder: (_) => const AddToTeamDialog());
+  Widget _buildActionButton(String label, VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30)),
+      ),
+      child: Text(label),
+    );
+  }
 
-  final List<Map<String, dynamic>> childLevels = [
-    {'name': 'LuLu', 'level': 1, 'points': 0},
-    {'name': 'Luna', 'level': 1, 'points': 77},
-  ];
+  void _showCreateTeamDialog() =>
+      showDialog(context: context, builder: (_) => const CreateTeamDialog());
 
-  final List<Map<String, dynamic>> upcomingChores = [
-    {'title': "Luna's Second Chore", 'date': '2025-05-22', 'child': 'Luna', 'points': 25},
-    {'title': "Luna's First Chore", 'date': '2025-05-22', 'child': 'Luna', 'points': 125},
-    {'title': "small Chores", 'date': '2025-05-22', 'child': 'LuLu', 'points': 33},
-    {'title': "AA task", 'date': '2025-05-23', 'child': 'LuLu', 'points': 155},
-    {'title': "Vercel Task", 'date': '2025-05-23', 'child': 'LuLu', 'points': 220},
-    {'title': "Extra Points for Cuteness", 'date': '2025-05-24', 'child': 'Luna', 'points': 405},
-    {'title': "New Task", 'date': '2025-05-24', 'child': 'LuLu', 'points': 10},
-    {'title': "Azure Task", 'date': '2025-05-24', 'child': 'LuLu', 'points': 102},
-    {'title': "Android with Azure", 'date': '2025-05-24', 'child': 'LuLu', 'points': 245},
-  ];
+  void _showJoinTeamDialog() =>
+      showDialog(context: context, builder: (_) => const JoinTeamDialog());
+
+  void _showAddToTeamDialog() =>
+      showDialog(context: context, builder: (_) => const AddToTeamDialog());
+
+  Future<void> _loadDashboard() async {
+    final prefs = await SharedPreferences.getInstance();
+    userId = prefs.getInt('userId') ?? -1;
+    allChores = await ApiService().fetchChores();
+    final users = await ApiService().fetchUsers();
+    final currentUser = users.firstWhere((u) => u.userId == userId);
+    final chores = await ApiService().fetchChores();
+
+    if (userId == -1) return;
+
+    try {
+      final users = await ApiService().fetchUsers();
+      final currentUser = users.firstWhere((u) => u.userId == userId);
+
+      if (currentUser.teamId != null) {
+        final team = await ApiService().fetchTeam(currentUser.teamId!);
+        setState(() {
+          teamName = team.teamName ?? '';
+          children = users
+              .where((u) =>
+          u.role == 'Child' && u.teamId == currentUser.teamId)
+              .toList();
+        });
+      }
+    } catch (e) {
+      print("Failed to load dashboard: $e");
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboard();
+  }
+
+
+  List<Widget> buildChildLevels() {
+    return children.map((child) {
+      final points = child.totalPoints ?? 0;
+      final level = Level.getLevel(points);
+
+      return Container(
+        padding: const EdgeInsets.all(8),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        color: level.color,
+        child: Text(
+          '${child.username} - ${level.name} - $points pts',
+          style: const TextStyle(fontSize: 14),
+        ),
+      );
+    }).toList();
+  }
+
+  void fetchTeam(int teamId) async {
+    try {
+      final team = await ApiService().fetchTeam(teamId);
+      setState(() {
+        teamName = team.teamName ?? '';
+      });
+    } catch (e) {
+      print('Error fetching team: $e');
+    }
+  }
+
+  List<Widget> buildUpcomingChores() {
+    final childIds = children.map((c) => c.userId).toSet();
+
+    final choresToShow = allChores.where((chore) {
+      final rawDate = chore.dateAssigned;
+      final assignedTo = chore.assignedTo;
+
+      if (rawDate == null || assignedTo == null) return false;
+      if (!childIds.contains(assignedTo)) return false;
+
+      final parsedDate = DateTime.tryParse(rawDate);
+      if (parsedDate == null) return false;
+
+      if (selectedDate != null) {
+        // Show only for selected date
+        return parsedDate.year == selectedDate!.year &&
+            parsedDate.month == selectedDate!.month &&
+            parsedDate.day == selectedDate!.day;
+      }
+
+      // Show for next 7 days
+      final now = DateTime.now();
+      final end = now.add(const Duration(days: 6));
+      return !parsedDate.isBefore(now) && !parsedDate.isAfter(end);
+    }).toList()
+      ..sort((a, b) => a.dateAssigned!.compareTo(b.dateAssigned!));
+
+    if (choresToShow.isEmpty) {
+      return [const Text("No chores found.")];
+    }
+
+    return choresToShow.map((chore) {
+      final child = children.firstWhere(
+            (c) => c.userId == chore.assignedTo,
+        orElse: () => User(userId: 0, username: 'Unknown', email: '', role: ''),
+      );
+
+      return ListTile(
+        title: Text('${chore.choreText} - ${chore.dateAssigned}'),
+        subtitle: Text('${child.username} (${chore.points ?? 0} pts)'),
+      );
+    }).toList();
+  }
+
+
+  void fetchChores() async {
+    try {
+      final chores = await ApiService().fetchChores();
+      setState(() {
+        allChores = chores;
+      });
+    } catch (e) {
+      print('Error fetching chores: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,73 +297,69 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           body: Padding(
             padding: const EdgeInsets.all(16),
             child: SingleChildScrollView(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text("Team: AzureTeam", style: TextStyle(fontSize: 16)),
-                const SizedBox(height: 12),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                  _buildActionButton('Create Team', _showCreateTeamDialog),
-                  _buildActionButton('Join Team', _showJoinTeamDialog),
-                  _buildActionButton('Add to Team', _showAddToTeamDialog),
-                ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Team: $teamName', style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+
+                Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildActionButton('Create Team', _showCreateTeamDialog),
+                      _buildActionButton('Join Team', _showJoinTeamDialog),
+                      _buildActionButton('Add to Team', _showAddToTeamDialog),
+                    ]),
+
+                const Text('Children:', style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...buildChildLevels(),
                 const SizedBox(height: 20),
-                const Text('Child Levels', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ...childLevels.map((child) => Card(
-                  child: ListTile(
-                    title: Text('${child['name']} - Level ${child['level']} (Beginner) - ${child['points']} pts'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.red),
-                      onPressed: () {},
-                    ),
-                  ),
-                )),
-                const SizedBox(height: 20),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                  ElevatedButton(
-                    onPressed: _selectDate,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                    child: const Text("Select a Date"),
-                  ),
-                  ElevatedButton(
-                    onPressed: _clearDateFilter,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                    child: const Text("Clear Date Filter"),
-                  ),
-                ]),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _openDatePicker,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue),
+                        child: const Text("Select a Date"),
+                      ),
+                      ElevatedButton(
+                        onPressed: _clearDateFilter,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue),
+                        child: const Text("Clear Date Filter"),
+                      ),
+                    ]),
                 const SizedBox(height: 20),
                 Text(
-                  selectedDate == null ? 'Upcoming Chores (Next 7 Days)' : 'Chores for ${selectedDate!.toLocal().toString().split(" ")[0]}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  selectedDate == null
+                      ? 'Upcoming Chores (Next 7 Days)'
+                      : 'Chores for ${selectedDate!
+                      .toLocal()
+                      .toString()
+                      .split(" ")[0]}',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+                ...buildUpcomingChores(),
                 const SizedBox(height: 10),
-                //...chores.map((chore) => Text("${chore['title']} - ${chore['date']} - ${chore['child']} (${chore['points']} pts)")),
               ]),
             ),
           ),
-      // Bottom navigation bar using custom BottomAppBar with 4 buttons
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.blueGrey[50],
-        shape: const CircularNotchedRectangle(),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _bottomButton('Dashboard', _goToParentDashbaordScreen),
-            _bottomButton('Add Chore', _goToAddChoreScreen),
-            _bottomButton('Rewards', _goToRewardsScreen),
-            _bottomButton('Log Out', _logout),
-          ],
-        ),
-      ),
-    ));
-  }
-
-  Widget _buildActionButton(String label, VoidCallback onPressed) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-      ),
-      child: Text(label),
-    );
+          // Bottom navigation bar using custom BottomAppBar with 4 buttons
+          bottomNavigationBar: BottomAppBar(
+            color: Colors.blueGrey[50],
+            shape: const CircularNotchedRectangle(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _bottomButton('Dashboard', _goToParentDashbaordScreen),
+                _bottomButton('Add Chore', _goToAddChoreScreen),
+                _bottomButton('Rewards', _goToRewardsScreen),
+                _bottomButton('Log Out', _logout),
+              ],
+            ),
+          ),
+        ));
   }
 }

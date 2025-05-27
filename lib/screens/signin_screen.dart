@@ -1,61 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/user_model.dart';
 import '../models/login_models.dart';
 import '../services/api_service.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
+  final int userId;
+  const SignInScreen({Key? key, required this.userId}) : super(key: key);
 
   @override
-  State<SignInScreen> createState() => _SigninScreenState();
+  State<SignInScreen> createState() => _SignInScreenState();
 }
 
-class _SigninScreenState extends State<SignInScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  DateTime? selectedDate;
+  bool showPassword = false;
+  bool isLoading = false;
 
-  bool _isLoading = false;
-  bool _obscurePassword = true;
-
-  // ✅ Dark mode state
+  // 🌙 Track dark mode state
   bool _isDarkMode = false;
 
-  // ✅ Dark mode toggle method
+  // 🌙 Toggle dark mode on or off
   void _toggleTheme(bool value) {
     setState(() {
       _isDarkMode = value;
     });
   }
 
-  Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _handleSignIn() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    final loginModel = LoginModel(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter both email and password')),
+      );
+      return;
+    }
 
-    setState(() => _isLoading = true);
+    setState(() => isLoading = true);
 
     try {
-      final data = await ApiService.login(loginModel);
-      final role = data['user']['role'];
+      final loginRequest = LoginRequest(email: email, password: password);
+      final loginResponse = await ApiService().login(loginRequest);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login successful!')),
-      );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', loginResponse.token);
+      await prefs.setInt('userId', loginResponse.user.userId);
+      await prefs.setString('role', loginResponse.user.role);
 
-      if (role == 'Parent') {
-        Navigator.pushReplacementNamed(context, '/parentDashboard');
-      } else {
-        Navigator.pushReplacementNamed(context, '/childDashboard');
-      }
+      final destination = loginResponse.user.role == 'Parent'
+          ? '/parentDashboard'
+          : '/childDashboard';
+
+      Navigator.pushReplacementNamed(context, destination);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login failed: $e')),
       );
     } finally {
-      setState(() => _isLoading = false);
+      setState(() => isLoading = false);
     }
   }
 
@@ -64,74 +70,55 @@ class _SigninScreenState extends State<SignInScreen> {
     return Theme(
         data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
         child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Sign In'),
-            actions: [
-              Row(
-                children: [
-                  const Text("🌙", style: TextStyle(fontSize: 16)),
-                  Switch(
-                    value: _isDarkMode,
-                    onChanged: _toggleTheme,
-                  ),
-                ],
-              ),
-            ],
-          ),
-          body: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    validator: (value) =>
-                    value!.isEmpty
-                        ? 'Enter your email'
-                        : null,
-                  ),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility : Icons
-                              .visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
+            appBar: AppBar(
+              title: const Text('Sign In'),
+              actions: [
+                Row(
+                  children: [
+                    const Text("🌙", style: TextStyle(fontSize: 16)),
+                    Switch(
+                      value: _isDarkMode,
+                      onChanged: _toggleTheme,
                     ),
-                    validator: (value) =>
-                    value!.isEmpty
-                        ? 'Enter your password'
-                        : null,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _handleLogin,
-                    child: const Text('Sign In'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/signup');
-                    },
-                    child: const Text('Don’t have an account? Sign Up'),
-                  ),
-                ],
+                  ],
+                ),
+              ],
+            ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordController,
+              obscureText: !showPassword,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                suffixIcon: IconButton(
+                  icon: Icon(showPassword ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () => setState(() => showPassword = !showPassword),
+                ),
               ),
             ),
-          ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: isLoading ? null : _handleSignIn,
+              child: isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('Sign In'),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => Navigator.pushNamed(context, '/signup'),
+              child: const Text("Don't have an account? Sign Up"),
+            ),
+          ],
+        ),
+      ),
         ),
     );
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/login_models.dart';
+import '../models/register_model.dart';
 import '../services/api_service.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -34,7 +34,7 @@ class _SignupScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await ApiService.register(registerModel);
+      await ApiService().register(registerModel);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Account created successfully! Please sign in.')),

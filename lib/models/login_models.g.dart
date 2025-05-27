@@ -6,34 +6,26 @@ part of 'login_models.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$LoginModelImpl _$$LoginModelImplFromJson(Map<String, dynamic> json) =>
-    _$LoginModelImpl(
+_$LoginRequestImpl _$$LoginRequestImplFromJson(Map<String, dynamic> json) =>
+    _$LoginRequestImpl(
       email: json['email'] as String,
       password: json['password'] as String,
     );
 
-Map<String, dynamic> _$$LoginModelImplToJson(_$LoginModelImpl instance) =>
+Map<String, dynamic> _$$LoginRequestImplToJson(_$LoginRequestImpl instance) =>
     <String, dynamic>{
       'email': instance.email,
       'password': instance.password,
     };
 
-_$RegisterModelImpl _$$RegisterModelImplFromJson(Map<String, dynamic> json) =>
-    _$RegisterModelImpl(
-      username: json['username'] as String,
-      email: json['email'] as String,
-      password: json['password'] as String,
-      role: json['role'] as String?,
-      team: json['team'] as String?,
-      teamPassword: json['teamPassword'] as String?,
+_$LoginResponseImpl _$$LoginResponseImplFromJson(Map<String, dynamic> json) =>
+    _$LoginResponseImpl(
+      token: json['token'] as String,
+      user: User.fromJson(json['user'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$$RegisterModelImplToJson(_$RegisterModelImpl instance) =>
+Map<String, dynamic> _$$LoginResponseImplToJson(_$LoginResponseImpl instance) =>
     <String, dynamic>{
-      'username': instance.username,
-      'email': instance.email,
-      'password': instance.password,
-      'role': instance.role,
-      'team': instance.team,
-      'teamPassword': instance.teamPassword,
+      'token': instance.token,
+      'user': instance.user,
     };

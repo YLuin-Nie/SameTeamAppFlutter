@@ -91,15 +91,15 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
 
   Future<void> fetchUsersAndChores() async {
     try {
-      allUsers = (await ApiService.fetchUsers()).cast<User>();
+      allUsers = (await ApiService().fetchUsers()).cast<User>();
       final currentUser = allUsers.firstWhere((u) => u.userId == widget.userId);
 
       childList = allUsers
           .where((u) => u.role == 'Child' && u.teamId == currentUser.teamId)
           .toList();
 
-      allChores = (await ApiService.fetchChores()).cast<Chore>();
-      completedChores = (await ApiService.fetchCompletedChores()).cast<CompletedChore>();
+      allChores = (await ApiService().fetchChores()).cast<Chore>();
+      completedChores = (await ApiService().fetchCompletedChores()).cast<CompletedChore>();
 
       debugPrint('✅ UserId: ${widget.userId}');
       debugPrint('👤 All Users: ${allUsers.length}');
@@ -141,22 +141,22 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
       completed: false,
     );
 
-    await ApiService.postChore(chore);
+    await ApiService().postChore(chore);
     fetchUsersAndChores();
   }
 
   void completeChore(int id) async {
-    await ApiService.moveChoreToCompleted(id);
+    await ApiService().completeChore(id);
     fetchUsersAndChores();
   }
 
   void deleteChore(int id) async {
-    await ApiService.deleteChore(id);
+    await ApiService().deleteChore(id);
     fetchUsersAndChores();
   }
 
   void undoChore(int id) async {
-    await ApiService.undoCompletedChore(id);
+    await ApiService().undoCompletedChore(id);
     fetchUsersAndChores();
   }
 
@@ -208,7 +208,7 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
                           initialDate: chore.dateAssigned,
                           initialAssignedUserId: chore.assignedTo,
                           onSubmit: (updatedChore) async {
-                            await ApiService.updateChore(chore.choreId, updatedChore);
+                            await ApiService().updateChore(chore.choreId, updatedChore);
                             fetchUsersAndChores();
                           },
                         ),
