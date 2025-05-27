@@ -284,95 +284,94 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
         .toList();
 
     return Theme(
-        data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-        child: Scaffold(
-            appBar: AppBar(
-              title: const Text('Chore Management'),
-              actions: [
-                Row(
-                  children: [
-                    const Text("🌙", style: TextStyle(fontSize: 16)),
-                    Switch(
-                      value: _isDarkMode,
-                      onChanged: _toggleTheme,
-                    ),
-                  ],
+      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Chore Management'),
+          actions: [
+            Row(
+              children: [
+                const Text("🌙", style: TextStyle(fontSize: 16)),
+                Switch(
+                  value: _isDarkMode,
+                  onChanged: _toggleTheme,
                 ),
               ],
             ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: choreTextController,
-                decoration: const InputDecoration(labelText: 'Chore Text'),
-              ),
-              TextField(
-                controller: pointsController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Points'),
-              ),
-              TextField(
-                controller: dateController,
-                readOnly: true,
-                decoration: const InputDecoration(labelText: 'Date Assigned'),
-                onTap: () async {
-                  DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) {
-                    dateController.text = DateFormat('yyyy-MM-dd').format(picked);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int>(
-                decoration: const InputDecoration(labelText: 'Assign to'),
-                value: selectedChildIndex,
-                items: List.generate(childList.length, (index) {
-                  return DropdownMenuItem(
-                    value: index,
-                    child: Text(childList[index].username),
-                  );
-                }),
-                onChanged: (val) => setState(() => selectedChildIndex = val ?? 0),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: addChore,
-                child: const Text('Add Chore'),
-              ),
-              const Divider(),
-              const Text('Pending Chores', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...pending.map((c) => buildChoreItem(c, false)).toList(),
-              const Divider(),
-              const Text('Completed Chores (last 7 days)', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...recentCompleted.map((c) => buildCompletedChoreItem(c)).toList(),
-            ],
-          ),
+          ],
         ),
-      ),
-          // Bottom navigation bar using custom BottomAppBar with 4 buttons
-          bottomNavigationBar: BottomAppBar(
-            color: Colors.blueGrey[50],
-            shape: const CircularNotchedRectangle(),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _bottomButton('Dashboard', _goToParentDashbaordScreen),
-                _bottomButton('Add Chore', _goToAddChoreScreen),
-                _bottomButton('Rewards', _goToRewardsScreen),
-                _bottomButton('Log Out', _logout),
+                TextField(
+                  controller: choreTextController,
+                  decoration: const InputDecoration(labelText: 'Chore Text'),
+                ),
+                TextField(
+                  controller: pointsController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Points'),
+                ),
+                TextField(
+                  controller: dateController,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: 'Date Assigned'),
+                  onTap: () async {
+                    DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      dateController.text = DateFormat('yyyy-MM-dd').format(picked);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  decoration: const InputDecoration(labelText: 'Assign to'),
+                  value: selectedChildIndex,
+                  items: List.generate(childList.length, (index) {
+                    return DropdownMenuItem(
+                      value: index,
+                      child: Text(childList[index].username),
+                    );
+                  }),
+                  onChanged: (val) => setState(() => selectedChildIndex = val ?? 0),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: addChore,
+                  child: const Text('Add Chore'),
+                ),
+                const Divider(),
+                const Text('Pending Chores', style: TextStyle(fontWeight: FontWeight.bold)),
+                ...pending.map((c) => buildChoreItem(c, false)).toList(),
+                const Divider(),
+                const Text('Completed Chores (last 7 days)', style: TextStyle(fontWeight: FontWeight.bold)),
+                ...recentCompleted.map((c) => buildCompletedChoreItem(c)).toList(),
               ],
             ),
           ),
-    ),);
+        ),
+        // Bottom navigation bar using custom BottomAppBar with 4 buttons
+        bottomNavigationBar: BottomAppBar(
+          color: Colors.blueGrey[50],
+          shape: const CircularNotchedRectangle(),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _bottomButton('Dashboard', _goToParentDashbaordScreen),
+              _bottomButton('Add Chore', _goToAddChoreScreen),
+              _bottomButton('Rewards', _goToRewardsScreen),
+              _bottomButton('Log Out', _logout),
+            ],
+          ),
+        ),
+      ),);
   }
 }
-

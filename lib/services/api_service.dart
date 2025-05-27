@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import '../exceptions/api_exception.dart';
 import '../models/user_model.dart';
@@ -80,18 +81,36 @@ class ApiService {
     }
   }
 
-  Future<Team> createTeam(Map<String, dynamic> model) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/Users/createTeam'),
-      headers: getHeaders(),
-      body: jsonEncode(model),
-    );
-    if (res.statusCode == 200) {
-      return Team.fromJson(jsonDecode(res.body));
-    } else {
-      throw Exception('Failed to create team: ${res.body}');
+  static Future<Map<String, dynamic>?> createTeam(
+      String teamName, String teamPassword, int userId) async {
+    final url = Uri.parse('$baseUrl/Users/createTeam');
+    final body = jsonEncode({
+      'teamName': teamName,
+      'teamPassword': teamPassword,
+      'userId': userId,
+    });
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        return data;
+      } else {
+        debugPrint('API error ${response.statusCode}: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Exception: $e');
+      return null;
     }
   }
+
+
 
   Future<Team> joinTeam(Map<String, dynamic> model) async {
     final res = await http.post(

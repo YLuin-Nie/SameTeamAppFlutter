@@ -1,59 +1,87 @@
 import 'package:flutter/material.dart';
+import '/services/api_service.dart';
 
-class CreateTeamDialog extends StatefulWidget {
-  const CreateTeamDialog({super.key});
+class CreateTeamDialog extends StatelessWidget {
+  final int userId;
+  final VoidCallback refreshParent;
 
-  @override
-  State<CreateTeamDialog> createState() => _CreateTeamDialogState();
-}
+  const CreateTeamDialog({
+    Key? key,
+    required this.userId,
+    required this.refreshParent,
+  }) : super(key: key);
 
-class _CreateTeamDialogState extends State<CreateTeamDialog> {
-  final TextEditingController _teamNameController = TextEditingController();
-  final TextEditingController _teamPasswordController = TextEditingController();
 
-  void _submitData() {
-    final name = _teamNameController.text.trim();
-    final pass = _teamPasswordController.text.trim();
-
-    if (name.isEmpty || pass.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("All fields must be filled")),
-      );
-      return;
-    }
-
-    Navigator.of(context).pop({
-      'teamName': name,
-      'teamPassword': pass,
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
+    final TextEditingController teamNameController = TextEditingController();
+    final TextEditingController teamPasswordController = TextEditingController();
+
     return AlertDialog(
-      title: const Text("Create Team"),
+      title: const Text('Create New Team'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
-            controller: _teamNameController,
+            controller: teamNameController,
             decoration: const InputDecoration(labelText: 'Team Name'),
           ),
           TextField(
-            controller: _teamPasswordController,
-            decoration: const InputDecoration(labelText: 'Team Password'),
+            controller: teamPasswordController,
             obscureText: true,
+            decoration: const InputDecoration(labelText: 'Team Password'),
           ),
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text("Cancel"),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: _submitData,
-          child: const Text("Create"),
+          onPressed: () async {
+            if (teamNameController.text.trim().isEmpty ||
+                teamPasswordController.text.trim().isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please enter a team name and password'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              return;
+            }
+
+            // 🟡 Debug print to verify userId is correct
+            debugPrint("Submitting team with userId: $userId");
+
+            final response = await ApiService.createTeam(
+              teamNameController.text,
+              teamPasswordController.text,
+              userId,
+            );
+
+            if (response != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Team "${response['teamName']}" created successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+
+              await Future.delayed(const Duration(milliseconds: 800));
+              Navigator.of(context).pop();
+              refreshParent();
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to create team'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          child: const Text('Create'),
         ),
       ],
     );

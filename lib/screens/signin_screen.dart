@@ -3,6 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import '../models/login_models.dart';
 import '../services/api_service.dart';
+import '../screens/parent_dashboard_screen.dart';
+import '../screens/child_dashboard_screen.dart';
+
 
 class SignInScreen extends StatefulWidget {
   final int userId;
@@ -51,11 +54,25 @@ class _SignInScreenState extends State<SignInScreen> {
       await prefs.setInt('userId', loginResponse.user.userId);
       await prefs.setString('role', loginResponse.user.role);
 
-      final destination = loginResponse.user.role == 'Parent'
-          ? '/parentDashboard'
-          : '/childDashboard';
-
-      Navigator.pushReplacementNamed(context, destination);
+      if (loginResponse.user.role == 'Parent') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ParentDashboardScreen(
+              userId: loginResponse.user.userId,
+            ),
+          ),
+        );
+      } else if (loginResponse.user.role == 'Child') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChildDashboardScreen(
+              userId: loginResponse.user.userId,
+            ),
+          ),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login failed: $e')),
@@ -68,58 +85,58 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Theme(
-        data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-        child: Scaffold(
-            appBar: AppBar(
-              title: const Text('Sign In'),
-              actions: [
-                Row(
-                  children: [
-                    const Text("🌙", style: TextStyle(fontSize: 16)),
-                    Switch(
-                      value: _isDarkMode,
-                      onChanged: _toggleTheme,
-                    ),
-                  ],
+      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Sign In'),
+          actions: [
+            Row(
+              children: [
+                const Text("🌙", style: TextStyle(fontSize: 16)),
+                Switch(
+                  value: _isDarkMode,
+                  onChanged: _toggleTheme,
                 ),
               ],
             ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              obscureText: !showPassword,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                suffixIcon: IconButton(
-                  icon: Icon(showPassword ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => showPassword = !showPassword),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: isLoading ? null : _handleSignIn,
-              child: isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Sign In'),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/signup'),
-              child: const Text("Don't have an account? Sign Up"),
-            ),
           ],
         ),
-      ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                obscureText: !showPassword,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  suffixIcon: IconButton(
+                    icon: Icon(showPassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () => setState(() => showPassword = !showPassword),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: isLoading ? null : _handleSignIn,
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Sign In'),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/signup'),
+                child: const Text("Don't have an account? Sign Up"),
+              ),
+            ],
+          ),
         ),
+      ),
     );
   }
 }

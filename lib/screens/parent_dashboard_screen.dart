@@ -146,8 +146,20 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     );
   }
 
-  void _showCreateTeamDialog() =>
-      showDialog(context: context, builder: (_) => const CreateTeamDialog());
+  void _showCreateTeamDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return CreateTeamDialog(
+          userId: widget.userId,
+          refreshParent: _loadDashboard,
+        );
+      },
+    );
+  }
+
+
+//showDialog(context: context, builder: (_) => CreateTeamDialog(userId:0, refreshParent: () {  },));
 
   void _showJoinTeamDialog() =>
       showDialog(context: context, builder: (_) => const JoinTeamDialog());
