@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
@@ -182,6 +183,45 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     );
   }
 
+  void _confirmRemoveChild(int userId, String username) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Remove Child"),
+        content: Text("Are you sure you want to remove $username from the team?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+            //  Navigator.of(context).pop();
+              final success = await ApiService.removeUserFromTeam(userId);
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Removed $username")),
+                );
+                Navigator.of(context).pop(); // 👈 do this AFTER showing snack
+                setState(() {
+                  _loadDashboard(); // or fetchUsersThenChores()
+                });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Failed to remove $username")),
+                );
+                Navigator.of(context).pop(); // still pop dialog even on failure
+              }
+            },
+            child: const Text("Yes", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  //  _loadDashboard();
+  }
+
+
   Future<void> _loadDashboard() async {
     final prefs = await SharedPreferences.getInstance();
     userId = prefs.getInt('userId') ?? -1;
@@ -224,12 +264,24 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
       final level = Level.getLevel(points);
 
       return Container(
-        padding: const EdgeInsets.all(8),
         margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         color: level.color,
-        child: Text(
-          '${child.username} - ${level.name} - $points pts',
-          style: const TextStyle(fontSize: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                '${child.username} - ${level.name} - $points pts',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.red),
+              tooltip: "Remove from Team",
+              onPressed: () => _confirmRemoveChild(child.userId, child.username),
+            ),
+          ],
         ),
       );
     }).toList();

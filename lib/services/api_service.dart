@@ -157,12 +157,17 @@ class ApiService {
   }
 
 
-  Future<void> removeUserFromTeam(int userId) async {
-    final res = await http.post(Uri.parse('$baseUrl/Users/removeFromTeam/$userId'));
-    if (res.statusCode != 200) {
-      throw Exception('Failed to remove user from team');
+  static Future<bool> removeUserFromTeam(int userId) async {
+    final url = Uri.parse('$baseUrl/Users/removeFromTeam/$userId');
+    final response = await http.post(url);
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      debugPrint('Remove failed: ${response.statusCode} - ${response.body}');
+      return false;
     }
   }
+
 
   Future<void> updateUserPoints(int userId, int points) async {
     final res = await http.put(
