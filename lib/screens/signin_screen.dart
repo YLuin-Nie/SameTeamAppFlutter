@@ -1,6 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/user_model.dart';
 import '../models/login_models.dart';
 import '../services/api_service.dart';
 import '../screens/parent_dashboard_screen.dart';
@@ -33,6 +33,10 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _handleSignIn() async {
+    setState(() {
+      isLoading = true;
+    });
+
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -49,10 +53,11 @@ class _SignInScreenState extends State<SignInScreen> {
       final loginRequest = LoginRequest(email: email, password: password);
       final loginResponse = await ApiService().login(loginRequest);
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', loginResponse.token);
-      await prefs.setInt('userId', loginResponse.user.userId);
-      await prefs.setString('role', loginResponse.user.role);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', loginResponse.token);
+        await prefs.setInt('userId', loginResponse.user.userId);
+        await prefs.setString('role', loginResponse.user.role);
+        await prefs.setString('loggedInUser', jsonEncode(loginResponse.user));
 
       if (loginResponse.user.role == 'Parent') {
         Navigator.pushReplacement(

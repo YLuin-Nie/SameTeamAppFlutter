@@ -9,6 +9,9 @@ import 'screens/chores_list_screen.dart';
 import 'screens/child_rewards_screen.dart';
 import 'screens/parent_rewards_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'utils/auth_util.dart';
+
 
 
 void main() {
@@ -21,7 +24,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'SameTeamApp',
       debugShowCheckedModeBanner: false,
-      initialRoute: '/welcome',
+    //  initialRoute: '/welcome',
+      home: const SplashScreen(),
       routes: {
         '/signin': (context) => const SignInScreen(userId: 0,),
         '/signup': (context) => const SignUpScreen(),
@@ -45,25 +49,34 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  Future<void> _checkLoginStatus() async {
+    final user = await getCurrentUser();
+
+    if (user == null) {
+      Navigator.pushReplacementNamed(context, '/welcome');
+    } else if (user['role'] == 'Parent') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ParentDashboardScreen(userId: user['userId']),
+        ),
+      );
+    } else if (user['role'] == 'Child') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChildDashboardScreen(userId: user['userId']),
+        ),
+      );
+    } else {
+      Navigator.pushReplacementNamed(context, '/welcome');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    checkLoginStatus();
-  }
-
-  Future<void> checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final role = prefs.getString('role');
-
-    await Future.delayed(const Duration(seconds: 1)); // optional splash delay
-
-    if (role == 'Parent') {
-      Navigator.pushReplacementNamed(context, '/parentDashboard');
-    } else if (role == 'Child') {
-      Navigator.pushReplacementNamed(context, '/childDashboard');
-    } else {
-      Navigator.pushReplacementNamed(context, '/signin');
-    }
+    _checkLoginStatus();
   }
 
   @override

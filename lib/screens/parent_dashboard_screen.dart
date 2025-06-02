@@ -88,8 +88,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   }
 
   // Logs out and navigates to Sign In screen
-  void _logout() {
-    Navigator.pushReplacementNamed(context, '/signin');
+  void _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // ✅ clears token, userId, role, etc.
+
+    // Navigate to SignIn and remove all previous routes
+    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
   }
 
   void displayChoresOnDate(DateTime selectedDate) {
@@ -196,7 +200,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           ),
           TextButton(
             onPressed: () async {
-            //  Navigator.of(context).pop();
+              //  Navigator.of(context).pop();
               final success = await ApiService.removeUserFromTeam(userId);
               if (success) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -218,7 +222,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
         ],
       ),
     );
-  //  _loadDashboard();
+    //  _loadDashboard();
   }
 
 
