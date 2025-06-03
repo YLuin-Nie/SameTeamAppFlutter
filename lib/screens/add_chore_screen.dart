@@ -1,3 +1,5 @@
+// AddChoreScreen.dart (structured into 3 clear sections with collapsible sections 2 and 3)
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/user_model.dart';
@@ -5,7 +7,7 @@ import '../../models/chore_model.dart';
 import '../../models/completed_chore_model.dart';
 import '../../services/api_service.dart';
 import '../../widgets/dialogs/edit_chore_dialog.dart';
-import '../widgets/dialogs/add_chore_dialog.dart';
+import '../../widgets/dialogs/add_chore_dialog.dart';
 
 class AddChoreScreen extends StatefulWidget {
   final int userId;
@@ -19,56 +21,92 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
   List<User> children = [];
   List<Chore> chores = [];
   List<CompletedChore> completedChores = [];
+  Map<int, bool> expandedState = {};
   bool isLoading = true;
   int userId = -1;
+  bool section2Expanded = true;
+  bool section3Expanded = true;
+  bool _isDarkMode = false;
+
+  void _toggleTheme(bool value) {
+    setState(() {
+      _isDarkMode = value;
+    });
+  }
+
+  Widget _bottomButton(String label, VoidCallback onPressed) {
+    return TextButton(
+      onPressed: onPressed,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_getIconForLabel(label)),
+          Text(label, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  IconData _getIconForLabel(String label) {
+    switch (label) {
+      case 'Dashboard': return Icons.dashboard;
+      case 'Add Chore': return Icons.add;
+      case 'Rewards': return Icons.card_giftcard;
+      case 'Log Out': return Icons.logout;
+      default: return Icons.help_outline;
+    }
+  }
+
+  void _goToParentDashbaordScreen() {
+    Navigator.pushNamed(context, '/parentDashboard', arguments: widget.userId);
+  }
+
+  void _goToAddChoreScreen() {
+    Navigator.pushNamed(context, '/addChore', arguments: widget.userId);
+  }
+
+  void _goToRewardsScreen() {
+    Navigator.pushNamed(context, '/parentRewards', arguments: widget.userId);
+  }
+
+  void _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+  }
 
   @override
   void initState() {
     super.initState();
-    fetchData(); // 🔄 Load all data on screen start
+    fetchData();
   }
 
   Future<void> fetchData() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      userId = prefs.getInt('userId') ?? -1;
-      if (userId == -1) {
-        print('User ID not found in SharedPreferences');
-        return;
-      }
+    final prefs = await SharedPreferences.getInstance();
+    userId = prefs.getInt('userId') ?? -1;
+    final users = await ApiService().fetchUsers();
+    final currentUser = users.firstWhere((u) => u.userId == userId);
+    final allChores = await ApiService().fetchChores();
+    final fetchedCompleted = await ApiService().fetchCompletedChores();
 
-      final users = await ApiService().fetchUsers();
-      final currentUser = users.firstWhere((u) => u.userId == userId);
-      final allChores = await ApiService().fetchChores();
-      final fetchedCompleted = await ApiService().fetchCompletedChores();
+    fetchedCompleted.sort((a, b) => b.completionDate.compareTo(a.completionDate));
 
-      // ✅ Sort by most recent completion date, then alphabetically
-      fetchedCompleted.sort((a, b) {
-        final dateCompare = b.completionDate.compareTo(a.completionDate);
-        return dateCompare != 0 ? dateCompare : a.choreText.compareTo(b.choreText);
-      });
+    final sameTeamChildren = users
+        .where((u) => u.role == 'Child' && u.teamId == currentUser.teamId)
+        .toList();
 
-      final sameTeamChildren = users
-          .where((u) => u.role == 'Child' && u.teamId == currentUser.teamId)
-          .toList();
-
-      setState(() {
-        children = sameTeamChildren;
-        chores = allChores;
-        completedChores = fetchedCompleted;
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error fetching data: $e');
-    }
+    setState(() {
+      children = sameTeamChildren;
+      chores = allChores;
+      completedChores = fetchedCompleted;
+      expandedState = {for (var child in sameTeamChildren) child.userId: true};
+      isLoading = false;
+    });
   }
 
   List<Chore> getPendingChoresForChild(int childId) {
     return chores
-        .where((chore) =>
-    chore.assignedTo == childId &&
-        chore.dateAssigned != null &&
-        !chore.completed)
+        .where((c) => c.assignedTo == childId && c.dateAssigned != null && !c.completed)
         .toList()
       ..sort((a, b) => a.dateAssigned!.compareTo(b.dateAssigned!));
   }
@@ -88,195 +126,168 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
         },
       ),
     );
-
-    if (shouldRefresh == true) {
-      await fetchData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chore updated!')),
-      );
-    }
+    if (shouldRefresh == true) fetchData();
   }
 
   void _completeChore(Chore chore) async {
-    try {
-      final today = DateTime.now().toIso8601String().split('T')[0]; // YYYY-MM-DD
-      await ApiService().completeChoreWithDate(chore.choreId, today);
-      fetchData();
-    } catch (e) {
-      print('Failed to complete chore: $e');
-    }
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    await ApiService().completeChoreWithDate(chore.choreId, today);
+    fetchData();
   }
 
   void _undoCompletedChore(int completedId) async {
-    try {
-      await ApiService().undoCompletedChore(completedId);
-      fetchData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Chore marked as incomplete.")),
-      );
-    } catch (e) {
-      print('Failed to undo chore: $e');
-    }
+    await ApiService().undoCompletedChore(completedId);
+    fetchData();
+  }
+
+  void _deleteChore(int id) async {
+    await ApiService().deleteChore(id);
+    fetchData();
   }
 
   String _getChildName(int childId) {
     final user = children.firstWhere(
-          (c) => c.userId == childId,
+          (u) => u.userId == childId,
       orElse: () => User(userId: 0, username: 'Unknown', email: '', role: ''),
     );
     return user.username;
   }
 
-  void _deleteChore(int choreId) async {
-    try {
-      await ApiService().deleteChore(choreId);
-      setState(() {
-        chores.removeWhere((c) => c.choreId == choreId);
-      });
-    } catch (e) {
-      print('Failed to delete chore: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("ALL Pending Chores")),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : children.isEmpty
-          ? const Center(child: Text("No children found."))
-          : ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: ElevatedButton.icon(
+    return Theme(
+      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Chore Management'),
+          actions: [
+            Row(
+              children: [
+                const Text("🌙", style: TextStyle(fontSize: 16)),
+                Switch(value: _isDarkMode, onChanged: _toggleTheme),
+              ],
+            ),
+          ],
+        ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+          padding: const EdgeInsets.all(12),
+          children: [
+            ElevatedButton.icon(
               icon: const Icon(Icons.add),
               label: const Text("Add New Chore"),
               onPressed: () async {
                 final shouldRefresh = await showDialog<bool>(
                   context: context,
-                  builder: (context) => AddChoreDialog(userId: userId),
+                  builder: (_) => AddChoreDialog(userId: userId),
                 );
-                if (shouldRefresh == true) {
-                  fetchData();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Chore added successfully")),
-                  );
-                }
+                if (shouldRefresh == true) fetchData();
               },
             ),
-          ),
+            const SizedBox(height: 16),
 
-          // ✅ Pending chores grouped by child
-          ...children.map((child) {
-            final childChores = getPendingChoresForChild(child.userId);
-            return Card(
-              elevation: 4,
-              margin: const EdgeInsets.symmetric(vertical: 6),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      child.username,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (childChores.isEmpty)
-                      const Text("No pending chores.")
-                    else
-                      ...childChores.map((chore) => ListTile(
-                        title: Text(chore.choreText),
-                        subtitle: Text(
-                          "Points: ${chore.points} • Assigned: ${chore.dateAssigned}",
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              tooltip: 'Edit',
-                              onPressed: () => _openEditChoreDialog(chore),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.check_circle, color: Colors.green),
-                              tooltip: 'Complete',
-                              onPressed: () => _completeChore(chore),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              tooltip: 'Delete',
-                              onPressed: () => _deleteChore(chore.choreId),
-                            ),
-                          ],
-                        ),
-                      )),
-                  ],
-                ),
-              ),
-            );
-          }),
-
-          const SizedBox(height: 20),
-
-          // ✅ Completed chores list
-          const Text(
-            'Completed Chores',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          ...completedChores.map((chore) => Container(
-            margin: const EdgeInsets.symmetric(vertical: 6),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.purple.shade700,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            ExpansionTile(
+              title: const Text("All Pending Chores", style: TextStyle(fontWeight: FontWeight.bold)),
+              initiallyExpanded: section2Expanded,
+              onExpansionChanged: (val) => setState(() => section2Expanded = val),
               children: [
-                // Chore info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        chore.choreText,
-                        style: const TextStyle(
-                          decoration: TextDecoration.lineThrough,
-                          fontSize: 16,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                ...children.map((child) {
+                  final chores = getPendingChoresForChild(child.userId);
+                  return ExpansionTile(
+                    title: Text(child.username,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    initiallyExpanded: expandedState[child.userId] ?? true,
+                    onExpansionChanged: (expanded) =>
+                        setState(() => expandedState[child.userId] = expanded),
+                    children: chores.isEmpty
+                        ? [const ListTile(title: Text("No pending chores."))]
+                        : chores.map((chore) => ListTile(
+                      title: Text(chore.choreText),
+                      subtitle: Text("Points: ${chore.points} • ${chore.dateAssigned}"),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () => _openEditChoreDialog(chore),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.check_circle, color: Colors.green),
+                            onPressed: () => _completeChore(chore),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _deleteChore(chore.choreId),
+                          ),
+                        ],
                       ),
-                      Text(
-                        "Points: ${chore.points} — Assigned to: ${_getChildName(chore.assignedTo!)}",
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Undo button
-                ElevatedButton.icon(
-                  onPressed: () => _undoCompletedChore(chore.completedId),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurpleAccent,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(Icons.undo),
-                  label: const Text("Undo"),
-                ),
+                    ))
+                        .toList(),
+                  );
+                })
               ],
             ),
-          )),
-        ],
+
+            const SizedBox(height: 20),
+            ExpansionTile(
+              title: const Text("Completed Chores",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              initiallyExpanded: section3Expanded,
+              onExpansionChanged: (val) => setState(() => section3Expanded = val),
+              children: [
+                ...completedChores.map((chore) => Container(
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(chore.choreText,
+                              style: TextStyle(fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.lineThrough),
+                              ),
+                            Text(
+                              "Points: ${chore.points} — ${chore.completionDate}",
+                            )
+                          ],
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => _undoCompletedChore(chore.completedId!),
+                        icon: const Icon(Icons.undo),
+                        label: const Text("Undo"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurpleAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                      )
+                    ],
+                  ),
+                ))
+              ],
+            )
+          ],
+        ),
+        bottomNavigationBar: BottomAppBar(
+          color: Colors.blueGrey[50],
+          shape: const CircularNotchedRectangle(),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _bottomButton('Dashboard', _goToParentDashbaordScreen),
+              _bottomButton('Add Chore', _goToAddChoreScreen),
+              _bottomButton('Rewards', _goToRewardsScreen),
+              _bottomButton('Log Out', _logout),
+            ],
+          ),
+        ),
       ),
     );
   }
