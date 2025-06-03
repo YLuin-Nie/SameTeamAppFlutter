@@ -197,36 +197,53 @@ class ApiService {
       headers: getHeaders(),
       body: jsonEncode(model.toJson()),
     );
-    if (res.statusCode == 200) {
+
+    if (res.statusCode == 200 || res.statusCode == 201) {
       return Chore.fromJson(jsonDecode(res.body));
     } else {
       throw Exception('Failed to post chore: ${res.body}');
     }
   }
 
+
   Future<Chore> updateChore(int id, Chore model) async {
+    print('Updating chore to: ${model.toJson()}');
+
     final res = await http.put(
       Uri.parse('$baseUrl/Chores/$id'),
       headers: getHeaders(),
       body: jsonEncode(model.toJson()),
     );
+
     if (res.statusCode == 200) {
+      print('Update successful: ${res.statusCode}');
       return Chore.fromJson(jsonDecode(res.body));
+    } else if (res.statusCode == 204) {
+      print('Update successful: ${res.statusCode} (No Content)');
+      return model;
     } else {
-      throw Exception('Failed to update chore');
+      throw Exception('Failed to update chore: ${res.statusCode}');
     }
   }
 
-  Future<void> completeChore(int choreId) async {
-    final res = await http.post(Uri.parse('$baseUrl/Chores/complete/$choreId'));
-    if (res.statusCode != 200) {
+  Future<void> completeChoreWithDate(int choreId, String date) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/Chores/complete/$choreId'),
+      headers: getHeaders(),
+      body: jsonEncode({"completionDate": date}),
+    );
+    if (res.statusCode != 200 && res.statusCode != 204) {
       throw Exception('Failed to complete chore');
     }
   }
 
-  Future<void> undoCompletedChore(int choreId) async {
-    final res = await http.post(Uri.parse('$baseUrl/Chores/undoComplete/$choreId'));
-    if (res.statusCode != 200) {
+  Future<void> undoCompletedChore(int completedChoreId) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/Chores/undoComplete/$completedChoreId'),
+      headers: getHeaders(),
+    );
+
+    if (res.statusCode != 200 && res.statusCode != 204) {
       throw Exception('Failed to undo completed chore');
     }
   }
@@ -238,15 +255,18 @@ class ApiService {
     }
   }
 
-  Future<List<Chore>> fetchCompletedChores() async {
+  Future<List<CompletedChore>> fetchCompletedChores() async {
     final res = await http.get(Uri.parse('$baseUrl/Chores/completed'));
+
     if (res.statusCode == 200) {
       final List<dynamic> data = jsonDecode(res.body);
-      return data.map((json) => Chore.fromJson(json)).toList();
+      return data.map((json) => CompletedChore.fromJson(json)).toList();
     } else {
       throw Exception('Failed to fetch completed chores');
     }
   }
+
+
 
   // ---------- REWARDS ----------
   Future<List<Reward>> fetchRewards() async {

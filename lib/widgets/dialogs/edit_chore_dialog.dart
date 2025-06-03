@@ -63,12 +63,12 @@ class _EditChoreDialogState extends State<EditChoreDialog> {
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Chore Name'),
+              decoration: const InputDecoration(labelText: 'Chore'),
             ),
             TextField(
               controller: pointsController,
-              keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Points'),
+              keyboardType: TextInputType.number,
             ),
             TextField(
               controller: dateController,
@@ -76,20 +76,19 @@ class _EditChoreDialogState extends State<EditChoreDialog> {
               decoration: const InputDecoration(labelText: 'Date Assigned'),
               onTap: showDatePickerDialog,
             ),
-            DropdownButton<int>(
+            DropdownButtonFormField<int>(
               value: selectedUserId,
-              items: widget.children.map((user) {
+              decoration: const InputDecoration(labelText: 'Assigned To'),
+              items: widget.children.map((child) {
                 return DropdownMenuItem<int>(
-                  value: user.userId,
-                  child: Text(user.username),
+                  value: child.userId,
+                  child: Text(child.username),
                 );
               }).toList(),
-              onChanged: (int? value) {
-                setState(() {
-                  selectedUserId = value ?? widget.initialAssignedUserId;
-                });
+              onChanged: (value) {
+                setState(() => selectedUserId = value ?? selectedUserId);
               },
-            )
+            ),
           ],
         ),
       ),
@@ -98,19 +97,20 @@ class _EditChoreDialogState extends State<EditChoreDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
+        TextButton(
           onPressed: () {
-            final updated = widget.chore.copyWith(
-              choreText: nameController.text.trim(),
-              points: int.tryParse(pointsController.text.trim()) ?? widget.chore.points,
-              dateAssigned: dateController.text.trim(),
+            final updatedChore = widget.chore.copyWith(
+              choreText: nameController.text,
+              points: int.tryParse(pointsController.text) ?? widget.chore.points,
+              dateAssigned: dateController.text,
               assignedTo: selectedUserId,
             );
-            widget.onSubmit(updated);
-            Navigator.of(context).pop();
+            widget.onSubmit(updatedChore);
+            print('Updated chore: ${updatedChore.toJson()}');
+            Navigator.of(context).pop(true);
           },
           child: const Text('Save'),
-        )
+        ),
       ],
     );
   }
