@@ -1,78 +1,79 @@
 import 'package:flutter/material.dart';
+import '../../models/user_model.dart';
+import '../../models/chore_model.dart';
 
-Future<void> showRewardChildDialog(
-    BuildContext context, {
-      required List<Map<String, dynamic>> children, // [{userId: 1, username: "Lulu"}]
-      required void Function(String rewardName, int points, int assignedToUserId) onSubmit,
-    }) async {
-  final nameController = TextEditingController();
-  final pointsController = TextEditingController();
-  int selectedUserId = children.isNotEmpty ? children[0]['userId'] : -1;
+class RewardChildDialog extends StatefulWidget {
+  final List<User> children;
+  final Function(Chore rewardChore) onSubmit;
 
-  await showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text("Reward a Child"),
+  const RewardChildDialog({
+    super.key,
+    required this.children,
+    required this.onSubmit,
+  });
+
+  @override
+  State<RewardChildDialog> createState() => _RewardChildDialogState();
+}
+
+class _RewardChildDialogState extends State<RewardChildDialog> {
+  int? selectedChildId;
+  final _rewardNameController = TextEditingController();
+  final _pointsController = TextEditingController(text: '10');
+
+  void _submit() {
+    final name = _rewardNameController.text.trim();
+    final points = int.tryParse(_pointsController.text.trim()) ?? 0;
+
+    if (selectedChildId == null || name.isEmpty || points <= 0) return;
+
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    final chore = Chore(
+      choreId: 0,
+      choreText: name,
+      points: points,
+      assignedTo: selectedChildId!,
+      dateAssigned: today,
+      completed: false,
+    );
+
+    widget.onSubmit(chore);
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Reward a Child'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           DropdownButtonFormField<int>(
-            value: selectedUserId,
-            items: children.map((child) {
-              return DropdownMenuItem<int>(
-                value: child['userId'],
-                child: Text(child['username']),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) selectedUserId = value;
-            },
-            decoration: InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: "Assign To",
-            ),
+            value: selectedChildId,
+            decoration: const InputDecoration(labelText: 'Select Child'),
+            items: widget.children
+                .map((child) => DropdownMenuItem(
+              value: child.userId,
+              child: Text(child.username),
+            ))
+                .toList(),
+            onChanged: (value) => setState(() => selectedChildId = value),
           ),
-          SizedBox(height: 12),
           TextField(
-            controller: nameController,
-            decoration: InputDecoration(
-              hintText: "Reward Name",
-              border: OutlineInputBorder(),
-            ),
+            controller: _rewardNameController,
+            decoration: const InputDecoration(labelText: 'Reward Name'),
           ),
-          SizedBox(height: 12),
           TextField(
-            controller: pointsController,
-            decoration: InputDecoration(
-              hintText: "Points",
-              border: OutlineInputBorder(),
-            ),
+            controller: _pointsController,
             keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Points'),
           ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("Cancel"),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            final rewardName = nameController.text.trim();
-            final points = int.tryParse(pointsController.text.trim()) ?? 0;
-
-            if (rewardName.isNotEmpty && points > 0) {
-              onSubmit(rewardName, points, selectedUserId);
-              Navigator.pop(context);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Please enter valid name and points.")),
-              );
-            }
-          },
-          child: Text("Submit"),
-        ),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        ElevatedButton(onPressed: _submit, child: const Text('Assign')),
       ],
-    ),
-  );
+    );
+  }
 }

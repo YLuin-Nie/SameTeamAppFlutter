@@ -249,11 +249,22 @@ class ApiService {
   }
 
   Future<void> deleteChore(int choreId) async {
-    final res = await http.delete(Uri.parse('$baseUrl/Chores/$choreId'));
-    if (res.statusCode != 200) {
-      throw Exception('Failed to delete chore');
+    final res = await http.delete(
+      Uri.parse('$baseUrl/Chores/$choreId'),
+      headers: getHeaders(),
+    );
+
+    if (res.statusCode == 204) {
+      print('Chore deleted successfully (No Content)');
+      return;
+    } else if (res.statusCode == 200) {
+      print('Chore deleted successfully (OK)');
+      return;
+    } else {
+      throw Exception('Failed to delete chore: ${res.statusCode}');
     }
   }
+
 
   Future<List<CompletedChore>> fetchCompletedChores() async {
     final res = await http.get(Uri.parse('$baseUrl/Chores/completed'));
@@ -285,10 +296,15 @@ class ApiService {
       headers: getHeaders(),
       body: jsonEncode(model.toJson()),
     );
+
     if (res.statusCode == 200) {
+      print('create successful: ${res.statusCode}');
       return Reward.fromJson(jsonDecode(res.body));
+    } else if (res.statusCode == 201) {
+      print('create successful: ${res.statusCode} (No Content)');
+      return model;
     } else {
-      throw Exception('Failed to post reward');
+      throw Exception('Failed to create reward: ${res.statusCode}');
     }
   }
 
@@ -298,21 +314,43 @@ class ApiService {
       headers: getHeaders(),
       body: jsonEncode(model.toJson()),
     );
+
     if (res.statusCode == 200) {
+      print('Update successful: ${res.statusCode}');
       return Reward.fromJson(jsonDecode(res.body));
+    } else if (res.statusCode == 204) {
+      print('Update successful: ${res.statusCode} (No Content)');
+      return model;
     } else {
-      throw Exception('Failed to update reward');
+      throw Exception('Failed to update reward: ${res.statusCode}');
     }
   }
 
-  Future<void> deleteReward(int id) async {
-    final res = await http.delete(Uri.parse('$baseUrl/Rewards/$id'));
-    if (res.statusCode != 200) {
-      throw Exception('Failed to delete reward');
+  Future<void> deleteReward(int rewardId) async {
+    final res = await http.delete(Uri.parse('$baseUrl/Rewards/$rewardId'));
+
+    if (res.statusCode == 204) {
+      print('Reward deleted successfully (No Content)');
+      return;
+    } else if (res.statusCode == 200) {
+      print('Reward deleted successfully (OK)');
+      return;
+    } else {
+      throw Exception('Failed to delete Reward: ${res.statusCode}');
     }
   }
 
   // ---------- REDEEMED REWARDS ----------
+  Future<List<RedeemedReward>> fetchAllRedeemedRewards() async {
+    final response = await http.get(Uri.parse('$baseUrl/RedeemedRewards'));
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => RedeemedReward.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load redeemed rewards');
+    }
+  }
+
   Future<List<RedeemedReward>> fetchRedeemedRewards(int userId) async {
     final res = await http.get(Uri.parse('$baseUrl/RedeemedRewards/$userId'));
     if (res.statusCode == 200) {

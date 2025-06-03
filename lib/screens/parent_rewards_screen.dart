@@ -1,30 +1,146 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../models/user_model.dart';
+import '../../models/reward_model.dart';
+import '../../models/redeemed_reward_model.dart';
+import '../../services/api_service.dart';
+import '../widgets/dialogs/add_reward_dialog.dart';
+import '../widgets/dialogs/edit_reward_dialog.dart';
+import '../widgets/dialogs/reward_child_dialog.dart';
 
 class ParentRewardsScreen extends StatefulWidget {
   final int userId;
   const ParentRewardsScreen({super.key, required this.userId});
 
   @override
-  _ParentRewardsScreenState createState() => _ParentRewardsScreenState();
+  State<ParentRewardsScreen> createState() => _ParentRewardsScreenState();
 }
 
 class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
-  List<dynamic> _children = [];
-  List<dynamic> _rewards = [];
-  Map<String, List<dynamic>> _redeemedMap = {};
-  // 🌙 Track dark mode state
+  List<Reward> rewards = [];
+  List<RedeemedReward> redeemed = [];
+  List<User> children = [];
+  bool isLoading = true;
+  bool section2Expanded = true;
+  bool section3Expanded = true;
   bool _isDarkMode = false;
+  int userId = -1;
 
-  // 🌙 Toggle dark mode on or off
   void _toggleTheme(bool value) {
-    setState(() {
-      _isDarkMode = value;
-    });
+    setState(() => _isDarkMode = value);
   }
-  // Helper widget to create each bottom button with icon and label
+
+  void _goToParentDashboard() {
+    Navigator.pushNamed(context, '/parentDashboard', arguments: widget.userId);
+  }
+
+  void _goToAddChoreScreen() {
+    Navigator.pushNamed(context, '/addChore', arguments: widget.userId);
+  }
+
+  void _goToRewardsScreen() {
+    Navigator.pushNamed(context, '/parentRewards', arguments: widget.userId);
+  }
+
+  void _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchData();
+  }
+
+
+  Future<void> fetchData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      userId = prefs.getInt('userId') ?? -1;
+
+      final users = await ApiService().fetchUsers();
+      final currentUser = users.firstWhere((u) => u.userId == userId);
+      final parentTeamId = currentUser.teamId;
+
+      children = users
+          .where((u) => u.role == 'Child' && u.teamId == parentTeamId)
+          .toList();
+
+      rewards = await ApiService().fetchRewards();
+
+      // 🆕 Fetch all redeemed rewards once
+      final allRedeemedRewards = await ApiService().fetchAllRedeemedRewards();
+
+      // 🧠 Filter to only this parent's children
+      redeemed = allRedeemedRewards
+          .where((r) => children.any((c) => c.userId == r.userId))
+          .toList();
+
+      redeemed.sort((a, b) => b.dateRedeemed.compareTo(a.dateRedeemed));
+
+      setState(() {
+        isLoading = false;
+      });
+
+      print("User ID: $userId, Team ID: $parentTeamId");
+      print("Children count: ${children.length}");
+      print("Filtered Redeemed Rewards count: ${redeemed.length}");
+    } catch (e) {
+      print("Error in fetchData(): $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+
+  void _addNewReward() async {
+    final shouldRefresh = await showDialog<bool>(
+      context: context,
+      builder: (_) => AddRewardDialog(
+        onSubmit: (reward) async {
+          await ApiService().postReward(reward);
+        //  Navigator.of(context).pop(true);
+        },
+      ),
+    );
+    if (shouldRefresh == true) fetchData();
+  }
+
+  void _rewardAChild() async {
+    final shouldRefresh = await showDialog<bool>(
+      context: context,
+      builder: (_) => RewardChildDialog(
+        children: children,
+        onSubmit: (rewardChore) async {
+          await ApiService().postChore(rewardChore);
+        },
+      ),
+    );
+    if (shouldRefresh == true) fetchData();
+  }
+
+  void _editReward(Reward reward) async {
+    final shouldRefresh = await showDialog<bool>(
+      context: context,
+      builder: (_) => EditRewardDialog(
+        reward: reward,
+        onSubmit: (updatedReward) async {
+          await ApiService().updateReward(updatedReward.rewardId, updatedReward);
+        },
+      ),
+    );
+    if (shouldRefresh == true) fetchData();
+  }
+
+
+  void _deleteReward(int rewardId) async {
+    await ApiService().deleteReward(rewardId);
+    fetchData();
+  }
+
   Widget _bottomButton(String label, VoidCallback onPressed) {
     return TextButton(
       onPressed: onPressed,
@@ -38,207 +154,112 @@ class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
     );
   }
 
-  // Returns the correct icon based on the label
   IconData _getIconForLabel(String label) {
     switch (label) {
-      case 'Dashboard':
-        return Icons.dashboard;
-      case 'Add Chore':
-        return Icons.add;
-      case 'Rewards':
-        return Icons.card_giftcard;
-      case 'Log Out':
-        return Icons.logout;
-      default:
-        return Icons.help_outline;
-    }
-  }
-
-  // Navigates to Parent Dashboard screen
-  void _goToParentDashbaordScreen() {
-    Navigator.pushNamed(context, '/parentDashboard', arguments: widget.userId);
-  }
-  // Navigates to Add Chore screen
-  void _goToAddChoreScreen() {
-    Navigator.pushNamed(context, '/addChore', arguments: widget.userId);
-  }
-
-  // Navigates to Rewards screen
-  void _goToRewardsScreen() {
-    Navigator.pushNamed(context, '/parentRewards', arguments: widget.userId);
-  }
-
-  // Logs out and navigates to Sign In screen
-  void _logout() {
-    Navigator.pushReplacementNamed(context, '/signin');
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchUsersAndRewards();
-  }
-
-  Future<void> _fetchUsersAndRewards() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final currentUser = jsonDecode(prefs.getString('user')!);
-
-    final userRes = await http.get(
-      Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Users'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (userRes.statusCode == 200) {
-      final users = jsonDecode(userRes.body);
-      final current = users.firstWhere((u) => u['userId'] == currentUser['userId'], orElse: () => null);
-
-      if (current != null) {
-        setState(() {
-          _children = users.where((u) => u['role'] == 'Child' && u['teamId'] == current['teamId']).toList();
-        });
-      }
-
-      final rewardRes = await http.get(
-        Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Rewards'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (rewardRes.statusCode == 200) {
-        setState(() {
-          _rewards = jsonDecode(rewardRes.body);
-        });
-
-        for (var child in _children) {
-          final rrRes = await http.get(
-            Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/RedeemedRewards/${child['userId']}'),
-            headers: {'Authorization': 'Bearer $token'},
-          );
-
-          if (rrRes.statusCode == 200) {
-            final rewards = jsonDecode(rrRes.body);
-            setState(() {
-              _redeemedMap[child['username']] = rewards;
-            });
-          }
-        }
-      }
+      case 'Dashboard': return Icons.dashboard;
+      case 'Add Chore': return Icons.add;
+      case 'Rewards': return Icons.card_giftcard;
+      case 'Log Out': return Icons.logout;
+      default: return Icons.help_outline;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Theme(
-        data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-        child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Reward Management'),
-            actions: [
-              Row(
-                children: [
-                  const Text("🌙", style: TextStyle(fontSize: 16)),
-                  Switch(
-                    value: _isDarkMode,
-                    onChanged: _toggleTheme,
-                  ),
-                ],
-              ),
-            ],
-          ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Reward Management'),
+          actions: [
+            Row(
+              children: [
+                const Text("🌙", style: TextStyle(fontSize: 16)),
+                Switch(value: _isDarkMode, onChanged: _toggleTheme),
+              ],
+            ),
+          ],
+        ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+          padding: const EdgeInsets.all(12),
           children: [
-            // Navigation Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [],
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.card_giftcard),
+                  label: const Text("Reward a Child"),
+                  onPressed: _rewardAChild,
+                ),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text("Add New Reward"),
+                  onPressed: _addNewReward,
+                ),
+              ],
             ),
-            SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Show reward-to-child popup
-              },
-              child: Text("Reward a Child"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Show add reward popup
-              },
-              child: Text("Add New Reward"),
-            ),
-            SizedBox(height: 30),
-
-            Text("Manage Rewards", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            ..._rewards.map((reward) {
-              return ListTile(
-                title: Text("${reward['name']} - ${reward['cost']} pts"),
+            const SizedBox(height: 16),
+            ExpansionTile(
+              title: const Text("Manage Rewards", style: TextStyle(fontWeight: FontWeight.bold)),
+              initiallyExpanded: section2Expanded,
+              onExpansionChanged: (val) => setState(() => section2Expanded = val),
+              children: rewards.map((reward) => ListTile(
+                title: Text(reward.name),
+                subtitle: Text("Cost: ${reward.cost} points"),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(icon: Icon(Icons.edit), onPressed: () {}),
                     IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () {
-                        _deleteReward(reward['rewardId']);
-                      },
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () => _editReward(reward),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deleteReward(reward.rewardId),
                     ),
                   ],
                 ),
-              );
-            }).toList(),
+              )).toList(),
+            ),
+            const SizedBox(height: 16),
+            ExpansionTile(
+              title: const Text("Redeemed Rewards", style: TextStyle(fontWeight: FontWeight.bold)),
+              initiallyExpanded: section3Expanded,
+              onExpansionChanged: (val) => setState(() => section3Expanded = val),
+              children: children.map((child) {
+                // Filter rewards for this child
+                final childRewards = redeemed
+                    .where((r) => r.userId == child.userId)
+                    .toList();
 
-            Divider(height: 40),
-
-            Text("Redeemed Rewards", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ..._redeemedMap.entries.map((entry) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(entry.key, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  ...entry.value.map((r) {
-                    return Text("${r['rewardName'] ?? 'Unnamed'} - ${r['pointsSpent']} pts on ${r['dateRedeemed']}");
-                  }).toList(),
-                  SizedBox(height: 10),
-                ],
-              );
-            }).toList(),
+                return ExpansionTile(
+                  title: Text(child.username, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  children: childRewards.isEmpty
+                      ? [const ListTile(title: Text("No redeemed rewards."))]
+                      : childRewards.map((reward) => ListTile(
+                    title: Text(reward.name),
+                    subtitle: Text("Points: ${reward.pointsSpent} • ${reward.dateRedeemed}"),
+                  )).toList(),
+                );
+              }).toList(),
+            ),
           ],
         ),
-      ),
-
-      // Bottom navigation bar using custom BottomAppBar with 4 buttons
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.blueGrey[50],
-        shape: const CircularNotchedRectangle(),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _bottomButton('Dashboard', _goToParentDashbaordScreen),
-            _bottomButton('Add Chore', _goToAddChoreScreen),
-            _bottomButton('Rewards', _goToRewardsScreen),
-            _bottomButton('Log Out', _logout),
-          ],
+        bottomNavigationBar: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _bottomButton('Dashboard', _goToParentDashboard),
+              _bottomButton('Add Chore', _goToAddChoreScreen),
+              _bottomButton('Rewards', _goToRewardsScreen),
+              _bottomButton('Log Out', _logout),
+            ],
+          ),
         ),
       ),
-    ));
-  }
-
-  void _deleteReward(int rewardId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-
-    final res = await http.delete(
-      Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Rewards/$rewardId'),
-      headers: {'Authorization': 'Bearer $token'},
     );
-
-    if (res.statusCode == 200) {
-      setState(() {
-        _rewards.removeWhere((r) => r['rewardId'] == rewardId);
-      });
-    }
   }
 }

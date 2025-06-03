@@ -1,5 +1,3 @@
-// AddChoreScreen.dart (structured into 3 clear sections with collapsible sections 2 and 3)
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/user_model.dart';
@@ -140,17 +138,9 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
     fetchData();
   }
 
-  void _deleteChore(int id) async {
-    await ApiService().deleteChore(id);
+  void _deleteChore(int choreId) async {
+    await ApiService().deleteChore(choreId);
     fetchData();
-  }
-
-  String _getChildName(int childId) {
-    final user = children.firstWhere(
-          (u) => u.userId == childId,
-      orElse: () => User(userId: 0, username: 'Unknown', email: '', role: ''),
-    );
-    return user.username;
   }
 
   @override
@@ -276,7 +266,6 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
           ],
         ),
         bottomNavigationBar: BottomAppBar(
-          color: Colors.blueGrey[50],
           shape: const CircularNotchedRectangle(),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,

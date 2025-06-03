@@ -9,7 +9,7 @@ class RedeemedReward with _$RedeemedReward {
     required int redemptionId,
     required int userId,
     required int rewardId,
-    required String rewardName,
+    required String name,
     required int pointsSpent,
     required String dateRedeemed,
   }) = _RedeemedReward;

@@ -327,7 +327,6 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           ),
         ),
         bottomNavigationBar: BottomAppBar(
-          color: Colors.blueGrey[50],
           shape: const CircularNotchedRectangle(),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,

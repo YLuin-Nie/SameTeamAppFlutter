@@ -11,7 +11,7 @@ _$RedeemedRewardImpl _$$RedeemedRewardImplFromJson(Map<String, dynamic> json) =>
       redemptionId: (json['redemptionId'] as num).toInt(),
       userId: (json['userId'] as num).toInt(),
       rewardId: (json['rewardId'] as num).toInt(),
-      rewardName: json['rewardName'] as String,
+      name: json['name'] as String,
       pointsSpent: (json['pointsSpent'] as num).toInt(),
       dateRedeemed: json['dateRedeemed'] as String,
     );
@@ -22,7 +22,7 @@ Map<String, dynamic> _$$RedeemedRewardImplToJson(
       'redemptionId': instance.redemptionId,
       'userId': instance.userId,
       'rewardId': instance.rewardId,
-      'rewardName': instance.rewardName,
+      'name': instance.name,
       'pointsSpent': instance.pointsSpent,
       'dateRedeemed': instance.dateRedeemed,
     };

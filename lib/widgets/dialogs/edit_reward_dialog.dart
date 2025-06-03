@@ -1,57 +1,76 @@
 import 'package:flutter/material.dart';
+import '../../models/reward_model.dart';
 
-Future<void> showEditRewardDialog(
-    BuildContext context, {
-      required String initialName,
-      required int initialCost,
-      required void Function(String name, int cost) onSubmit,
-    }) {
-  final nameController = TextEditingController(text: initialName);
-  final costController = TextEditingController(text: initialCost.toString());
+class EditRewardDialog extends StatefulWidget {
+  final Reward reward;
+  final Function(Reward updatedReward) onSubmit;
 
-  return showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text("Edit Reward"),
+  const EditRewardDialog({
+    super.key,
+    required this.reward,
+    required this.onSubmit,
+  });
+
+  @override
+  State<EditRewardDialog> createState() => _EditRewardDialogState();
+}
+
+class _EditRewardDialogState extends State<EditRewardDialog> {
+  late TextEditingController _nameController;
+  late TextEditingController _costController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.reward.name);
+    _costController = TextEditingController(text: widget.reward.cost.toString());
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _costController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final name = _nameController.text.trim();
+    final cost = int.tryParse(_costController.text.trim()) ?? 0;
+
+    if (name.isEmpty || cost <= 0) return;
+
+    final updated = Reward(
+      rewardId: widget.reward.rewardId,
+      name: name,
+      cost: cost,
+    );
+
+    widget.onSubmit(updated);
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Reward'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
-            controller: nameController,
-            decoration: InputDecoration(
-              hintText: "Reward Name",
-              border: OutlineInputBorder(),
-            ),
+            controller: _nameController,
+            decoration: const InputDecoration(labelText: 'Reward Name'),
           ),
-          SizedBox(height: 12),
           TextField(
-            controller: costController,
-            decoration: InputDecoration(
-              hintText: "Points",
-              border: OutlineInputBorder(),
-            ),
+            controller: _costController,
             keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Point Cost'),
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
-        ElevatedButton(
-          onPressed: () {
-            final name = nameController.text.trim();
-            final cost = int.tryParse(costController.text.trim()) ?? 0;
-            if (name.isNotEmpty && cost > 0) {
-              onSubmit(name, cost);
-              Navigator.pop(context);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Please enter valid name and cost.")),
-              );
-            }
-          },
-          child: Text("Save"),
-        ),
+        TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+        ElevatedButton(onPressed: _submit, child: const Text('Save')),
       ],
-    ),
-  );
+    );
+  }
 }

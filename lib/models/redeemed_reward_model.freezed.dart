@@ -23,7 +23,7 @@ mixin _$RedeemedReward {
   int get redemptionId => throw _privateConstructorUsedError;
   int get userId => throw _privateConstructorUsedError;
   int get rewardId => throw _privateConstructorUsedError;
-  String get rewardName => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
   int get pointsSpent => throw _privateConstructorUsedError;
   String get dateRedeemed => throw _privateConstructorUsedError;
 
@@ -47,7 +47,7 @@ abstract class $RedeemedRewardCopyWith<$Res> {
       {int redemptionId,
       int userId,
       int rewardId,
-      String rewardName,
+      String name,
       int pointsSpent,
       String dateRedeemed});
 }
@@ -70,7 +70,7 @@ class _$RedeemedRewardCopyWithImpl<$Res, $Val extends RedeemedReward>
     Object? redemptionId = null,
     Object? userId = null,
     Object? rewardId = null,
-    Object? rewardName = null,
+    Object? name = null,
     Object? pointsSpent = null,
     Object? dateRedeemed = null,
   }) {
@@ -87,9 +87,9 @@ class _$RedeemedRewardCopyWithImpl<$Res, $Val extends RedeemedReward>
           ? _value.rewardId
           : rewardId // ignore: cast_nullable_to_non_nullable
               as int,
-      rewardName: null == rewardName
-          ? _value.rewardName
-          : rewardName // ignore: cast_nullable_to_non_nullable
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
               as String,
       pointsSpent: null == pointsSpent
           ? _value.pointsSpent
@@ -115,7 +115,7 @@ abstract class _$$RedeemedRewardImplCopyWith<$Res>
       {int redemptionId,
       int userId,
       int rewardId,
-      String rewardName,
+      String name,
       int pointsSpent,
       String dateRedeemed});
 }
@@ -136,7 +136,7 @@ class __$$RedeemedRewardImplCopyWithImpl<$Res>
     Object? redemptionId = null,
     Object? userId = null,
     Object? rewardId = null,
-    Object? rewardName = null,
+    Object? name = null,
     Object? pointsSpent = null,
     Object? dateRedeemed = null,
   }) {
@@ -153,9 +153,9 @@ class __$$RedeemedRewardImplCopyWithImpl<$Res>
           ? _value.rewardId
           : rewardId // ignore: cast_nullable_to_non_nullable
               as int,
-      rewardName: null == rewardName
-          ? _value.rewardName
-          : rewardName // ignore: cast_nullable_to_non_nullable
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
               as String,
       pointsSpent: null == pointsSpent
           ? _value.pointsSpent
@@ -176,7 +176,7 @@ class _$RedeemedRewardImpl implements _RedeemedReward {
       {required this.redemptionId,
       required this.userId,
       required this.rewardId,
-      required this.rewardName,
+      required this.name,
       required this.pointsSpent,
       required this.dateRedeemed});
 
@@ -190,7 +190,7 @@ class _$RedeemedRewardImpl implements _RedeemedReward {
   @override
   final int rewardId;
   @override
-  final String rewardName;
+  final String name;
   @override
   final int pointsSpent;
   @override
@@ -198,7 +198,7 @@ class _$RedeemedRewardImpl implements _RedeemedReward {
 
   @override
   String toString() {
-    return 'RedeemedReward(redemptionId: $redemptionId, userId: $userId, rewardId: $rewardId, rewardName: $rewardName, pointsSpent: $pointsSpent, dateRedeemed: $dateRedeemed)';
+    return 'RedeemedReward(redemptionId: $redemptionId, userId: $userId, rewardId: $rewardId, name: $name, pointsSpent: $pointsSpent, dateRedeemed: $dateRedeemed)';
   }
 
   @override
@@ -211,8 +211,7 @@ class _$RedeemedRewardImpl implements _RedeemedReward {
             (identical(other.userId, userId) || other.userId == userId) &&
             (identical(other.rewardId, rewardId) ||
                 other.rewardId == rewardId) &&
-            (identical(other.rewardName, rewardName) ||
-                other.rewardName == rewardName) &&
+            (identical(other.name, name) || other.name == name) &&
             (identical(other.pointsSpent, pointsSpent) ||
                 other.pointsSpent == pointsSpent) &&
             (identical(other.dateRedeemed, dateRedeemed) ||
@@ -222,7 +221,7 @@ class _$RedeemedRewardImpl implements _RedeemedReward {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, redemptionId, userId, rewardId,
-      rewardName, pointsSpent, dateRedeemed);
+      name, pointsSpent, dateRedeemed);
 
   /// Create a copy of RedeemedReward
   /// with the given fields replaced by the non-null parameter values.
@@ -246,7 +245,7 @@ abstract class _RedeemedReward implements RedeemedReward {
       {required final int redemptionId,
       required final int userId,
       required final int rewardId,
-      required final String rewardName,
+      required final String name,
       required final int pointsSpent,
       required final String dateRedeemed}) = _$RedeemedRewardImpl;
 
@@ -260,7 +259,7 @@ abstract class _RedeemedReward implements RedeemedReward {
   @override
   int get rewardId;
   @override
-  String get rewardName;
+  String get name;
   @override
   int get pointsSpent;
   @override
