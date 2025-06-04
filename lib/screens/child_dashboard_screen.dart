@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../models/chore_model.dart';
-import '../models/user_model.dart';
 import '../models/level_model.dart';
 
 class ChildDashboardScreen extends StatefulWidget {
@@ -102,7 +102,9 @@ class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
         unspentPoints = user.points ?? 0;
       });
     } catch (e) {
-      print("Failed to load dashboard: $e");
+      if (kDebugMode) {
+        print("Failed to load dashboard: $e");
+      }
     }
   }
 
@@ -111,7 +113,7 @@ class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
       if (chore.assignedTo != userId || chore.completed == true) return false;
       if (chore.dateAssigned == null) return false;
 
-      final parsedDate = DateTime.tryParse(chore.dateAssigned!);
+      final parsedDate = DateTime.tryParse(chore.dateAssigned);
       if (parsedDate == null) return false;
 
       if (selectedDate != null) {
@@ -122,7 +124,7 @@ class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
 
       return true;
     }).toList()
-      ..sort((a, b) => a.dateAssigned!.compareTo(b.dateAssigned!));
+      ..sort((a, b) => a.dateAssigned.compareTo(b.dateAssigned));
 
     if (pendingChores.isEmpty) {
       return [const Text("No chores found.")];

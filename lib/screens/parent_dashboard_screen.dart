@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
@@ -77,7 +78,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     final childUserIds = children.map((c) => c.userId).toSet();
     final filtered = allChores.where((chore) {
       if (chore.dateAssigned == null || chore.assignedTo == null) return false;
-      final date = DateTime.tryParse(chore.dateAssigned!);
+      final date = DateTime.tryParse(chore.dateAssigned);
       if (date == null) return false;
       final sameDay = date.year == selectedDate.year &&
           date.month == selectedDate.month &&
@@ -185,7 +186,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
         });
       }
     } catch (e) {
-      print("Failed to load dashboard: $e");
+      if (kDebugMode) {
+        print("Failed to load dashboard: $e");
+      }
     }
   }
 
@@ -206,11 +209,18 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: Text('${child.username} - ${level.name} - $points pts', style: const TextStyle(fontSize: 16))),
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.red),
-              tooltip: "Remove from Team",
-              onPressed: () => _confirmRemoveChild(child.userId, child.username),
+            Expanded(
+              child: Text(
+                '${child.username} - ${level.name} - $points pts',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+            Tooltip(
+              message: 'Remove from Team',
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.red),
+                onPressed: () => _confirmRemoveChild(child.userId, child.username),
+              ),
             ),
           ],
         ),
@@ -234,7 +244,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
       }
       return true;
     }).toList()
-      ..sort((a, b) => a.dateAssigned!.compareTo(b.dateAssigned!));
+      ..sort((a, b) => a.dateAssigned.compareTo(b.dateAssigned));
 
     if (choresToShow.isEmpty) return [const Text("No chores found.")];
 
@@ -255,7 +265,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
       final chores = await ApiService().fetchChores();
       setState(() => allChores = chores);
     } catch (e) {
-      print('Error fetching chores: $e');
+      if (kDebugMode) {
+        print('Error fetching chores: $e');
+      }
     }
   }
 

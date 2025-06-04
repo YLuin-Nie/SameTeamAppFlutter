@@ -106,7 +106,7 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
     return chores
         .where((c) => c.assignedTo == childId && c.dateAssigned != null && !c.completed)
         .toList()
-      ..sort((a, b) => a.dateAssigned!.compareTo(b.dateAssigned!));
+      ..sort((a, b) => a.dateAssigned.compareTo(b.dateAssigned));
   }
 
   void _openEditChoreDialog(Chore chore) async {
@@ -198,20 +198,30 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => _openEditChoreDialog(chore),
+                          Tooltip(
+                            message: 'Edit Chore',
+                            child: IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _openEditChoreDialog(chore),
+                            ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.check_circle, color: Colors.green),
-                            onPressed: () => _completeChore(chore),
+                          Tooltip(
+                            message: 'Mark as Complete',
+                            child: IconButton(
+                              icon: const Icon(Icons.check_circle, color: Colors.green),
+                              onPressed: () => _completeChore(chore),
+                            ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteChore(chore.choreId),
+                          Tooltip(
+                            message: 'Delete Chore',
+                            child: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteChore(chore.choreId),
+                            ),
                           ),
                         ],
                       ),
+
                     ))
                         .toList(),
                   );
@@ -250,7 +260,7 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
                         ),
                       ),
                       ElevatedButton.icon(
-                        onPressed: () => _undoCompletedChore(chore.completedId!),
+                        onPressed: () => _undoCompletedChore(chore.completedId),
                         icon: const Icon(Icons.undo),
                         label: const Text("Undo"),
                         style: ElevatedButton.styleFrom(

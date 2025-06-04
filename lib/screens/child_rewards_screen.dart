@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/reward_model.dart';
@@ -13,11 +14,57 @@ class ChildRewardsScreen extends StatefulWidget {
 }
 
 class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
+  bool _isDarkMode = false;
   int userId = -1;
   int points = 0;
   bool isLoading = true;
   List<Reward> rewards = [];
   List<RedeemedReward> redeemed = [];
+
+  void _toggleTheme(bool value) {
+    setState(() => _isDarkMode = value);
+  }
+
+  void _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+  }
+
+  void _goToDashboardScreen() {
+    Navigator.pushNamed(context, '/childDashboard', arguments: userId);
+  }
+
+  void _goToChoresScreen() {
+    Navigator.pushNamed(context, '/choresList', arguments: userId);
+  }
+
+  void _goToRewardsScreen() {
+    Navigator.pushNamed(context, '/childRewards', arguments: userId);
+  }
+
+  Widget _bottomButton(String label, VoidCallback onPressed) {
+    return TextButton(
+      onPressed: onPressed,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_getIconForLabel(label)),
+          Text(label, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  IconData _getIconForLabel(String label) {
+    switch (label) {
+      case 'Dashboard': return Icons.dashboard;
+      case 'Chores': return Icons.check_box;
+      case 'Rewards': return Icons.card_giftcard;
+      case 'Log Out': return Icons.logout;
+      default: return Icons.help_outline;
+    }
+  }
 
   @override
   void initState() {
@@ -42,7 +89,9 @@ class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
         isLoading = false;
       });
     } catch (e) {
-      print("❌ Error loading child rewards: $e");
+      if (kDebugMode) {
+        print("❌ Error loading child rewards: $e");
+      }
       setState(() => isLoading = false);
     }
   }
@@ -79,7 +128,9 @@ class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
         SnackBar(content: Text("🎉 You redeemed: ${reward.name}")),
       );
     } catch (e) {
-      print("❌ Failed to redeem reward: $e");
+      if (kDebugMode) {
+        print("❌ Failed to redeem reward: $e");
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Could not complete redemption.")),
       );
@@ -88,8 +139,20 @@ class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Child Rewards")),
+    return Theme(
+        data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
+        child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Child Rewards'),
+              actions: [
+                Row(
+                  children: [
+                    const Text("🌙", style: TextStyle(fontSize: 16)),
+                    Switch(value: _isDarkMode, onChanged: _toggleTheme),
+                  ],
+                ),
+              ],
+            ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -114,10 +177,14 @@ class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
                   return Card(
                     child: ListTile(
                       title: Text("${reward.name} - ${reward.cost} pts"),
-                      trailing: ElevatedButton(
-                        onPressed: () => _redeemReward(reward),
-                        child: const Text("Redeem"),
+                      trailing: Tooltip(
+                        message: 'Redeem',
+                        child: IconButton(
+                          icon: const Icon(Icons.card_giftcard, color: Colors.blue),
+                          onPressed: () => _redeemReward(reward),
+                        ),
                       ),
+
                     ),
                   );
                 },
@@ -147,6 +214,19 @@ class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _bottomButton('Dashboard', _goToDashboardScreen),
+            _bottomButton('Chores', _goToChoresScreen),
+            _bottomButton('Rewards', _goToRewardsScreen),
+            _bottomButton('Log Out', _logout),
+          ],
+        ),
+      ),
+        ),
     );
   }
 }

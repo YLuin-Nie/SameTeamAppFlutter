@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chore_model.dart';
 import '../models/completed_chore_model.dart';
-import '../models/user_model.dart';
 import '../services/api_service.dart';
 
 class ChoresListScreen extends StatefulWidget {
@@ -47,22 +47,6 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
     Navigator.pushNamed(context, '/childRewards', arguments: userId);
   }
 
-  void _selectDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() => selectedDate = picked);
-    }
-  }
-
-  void _clearDate() {
-    setState(() => selectedDate = null);
-  }
-
   Future<void> _fetchData() async {
     final prefs = await SharedPreferences.getInstance();
     userId = prefs.getInt('userId') ?? -1;
@@ -87,7 +71,9 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
         completed = myCompleted.length;
       });
     } catch (e) {
-      print("Error loading data: $e");
+      if (kDebugMode) {
+        print("Error loading data: $e");
+      }
     }
   }
 
@@ -108,17 +94,19 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
         return ListTile(
           title: Text('${chore.choreText}'),
           subtitle: Text('${chore.points} pts — ${chore.completionDate}'),
-          trailing: IconButton(
-            icon: const Icon(Icons.undo, color: Colors.blue),
-            tooltip: 'Undo',
-            onPressed: () => _undoCompletedChore(chore.completedId),
+          trailing: Tooltip(
+            message: 'Undo',
+            child: IconButton(
+              icon: const Icon(Icons.undo, color: Colors.blue),
+              onPressed: () => _undoCompletedChore(chore.completedId),
+            ),
           ),
         );
       }).toList();
     } else {
       final filtered = chores.where((c) {
         if (c.completed == true || c.dateAssigned == null) return false;
-        final d = DateTime.tryParse(c.dateAssigned!);
+        final d = DateTime.tryParse(c.dateAssigned);
         if (d == null) return false;
         if (selectedDate == null) return true;
         return d.year == selectedDate!.year &&
@@ -132,16 +120,17 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
         return ListTile(
           title: Text('${chore.choreText} - ${chore.dateAssigned}'),
           subtitle: Text('${chore.points ?? 0} pts'),
-          trailing: IconButton(
-            icon: const Icon(Icons.check_circle, color: Colors.green),
-            tooltip: 'Mark as complete',
-            onPressed: () => _completeChore(chore),
+          trailing: Tooltip(
+            message: 'Mark as Complete',
+            child: IconButton(
+              icon: const Icon(Icons.check_circle, color: Colors.green),
+              onPressed: () => _completeChore(chore),
+            ),
           ),
         );
       }).toList();
     }
   }
-
 
   @override
   void initState() {

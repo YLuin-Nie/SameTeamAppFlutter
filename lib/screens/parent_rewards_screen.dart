@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/user_model.dart';
@@ -84,11 +85,19 @@ class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
         isLoading = false;
       });
 
-      print("User ID: $userId, Team ID: $parentTeamId");
-      print("Children count: ${children.length}");
-      print("Filtered Redeemed Rewards count: ${redeemed.length}");
+      if (kDebugMode) {
+        print("User ID: $userId, Team ID: $parentTeamId");
+      }
+      if (kDebugMode) {
+        print("Children count: ${children.length}");
+      }
+      if (kDebugMode) {
+        print("Filtered Redeemed Rewards count: ${redeemed.length}");
+      }
     } catch (e) {
-      print("Error in fetchData(): $e");
+      if (kDebugMode) {
+        print("Error in fetchData(): $e");
+      }
       setState(() {
         isLoading = false;
       });
@@ -211,15 +220,22 @@ class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () => _editReward(reward),
+                    Tooltip(
+                      message: 'Edit Reward',
+                      child: IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _editReward(reward),
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteReward(reward.rewardId),
+                    Tooltip(
+                      message: 'Delete Reward',
+                      child: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteReward(reward.rewardId),
+                      ),
                     ),
                   ],
+
                 ),
               )).toList(),
             ),
