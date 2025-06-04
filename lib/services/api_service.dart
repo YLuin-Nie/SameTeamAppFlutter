@@ -175,8 +175,8 @@ class ApiService {
       headers: getHeaders(),
       body: jsonEncode({'points': points}),
     );
-    if (res.statusCode != 200) {
-      throw Exception('Failed to update points');
+    if (res.statusCode != 200 && res.statusCode != 204) {
+      throw Exception('Registration failed: ${res.body}');
     }
   }
 
@@ -367,10 +367,15 @@ class ApiService {
       headers: getHeaders(),
       body: jsonEncode(model.toJson()),
     );
+
     if (res.statusCode == 200) {
+      print('redeemed successful: ${res.statusCode}');
       return RedeemedReward.fromJson(jsonDecode(res.body));
+    } else if (res.statusCode == 201) {
+      print('redeemed successful: ${res.statusCode} (No Content)');
+      return model;
     } else {
-      throw Exception('Failed to post redeemed reward');
+      throw Exception('Failed to redeemed reward: ${res.statusCode}');
     }
   }
 }

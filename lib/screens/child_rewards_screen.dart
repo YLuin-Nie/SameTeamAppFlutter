@@ -1,256 +1,152 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
+import '../models/reward_model.dart';
+import '../models/redeemed_reward_model.dart';
+import '../services/api_service.dart';
 
 class ChildRewardsScreen extends StatefulWidget {
   final int userId;
   const ChildRewardsScreen({super.key, required this.userId});
 
   @override
-  _ChildRewardsScreenState createState() => _ChildRewardsScreenState();
+  State<ChildRewardsScreen> createState() => _ChildRewardsScreenState();
 }
 
 class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
-  int? userId;
+  int userId = -1;
   int points = 0;
-  List<dynamic> rewards = [];
-  List<dynamic> redeemed = [];
-
-  final api = "https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/";
-
-  // 🌙 Track dark mode state
-  bool _isDarkMode = false;
-
-  // 🌙 Toggle dark mode on or off
-  void _toggleTheme(bool value) {
-    setState(() {
-      _isDarkMode = value;
-    });
-  }
-  // Helper widget to create each bottom button with icon and label
-  Widget _bottomButton(String label, VoidCallback onPressed) {
-    return TextButton(
-      onPressed: onPressed,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_getIconForLabel(label)),
-          Text(label, style: const TextStyle(fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  // Returns the correct icon based on the label
-  IconData _getIconForLabel(String label) {
-    switch (label) {
-      case 'Dashboard':
-        return Icons.dashboard;
-      case 'Chore List':
-        return Icons.add;
-      case 'Rewards':
-        return Icons.card_giftcard;
-      case 'Log Out':
-        return Icons.logout;
-      default:
-        return Icons.help_outline;
-    }
-  }
-
-  // Navigates to Parent Dashboard screen
-  void _goToChildDashbaordScreen() {
-    Navigator.pushNamed(context, '/childDashboard', arguments: widget.userId);
-  }
-  // Navigates to Add Chore screen
-  void _goToChoreListScreen() {
-    Navigator.pushNamed(context, '/choresList', arguments: widget.userId);
-  }
-
-  // Navigates to Rewards screen
-  void _goToRewardsScreen() {
-    Navigator.pushNamed(context, '/childRewards', arguments: widget.userId);
-  }
-
-  // Logs out and navigates to Sign In screen
-  void _logout() {
-    Navigator.pushReplacementNamed(context, '/signin');
-  }
+  bool isLoading = true;
+  List<Reward> rewards = [];
+  List<RedeemedReward> redeemed = [];
 
   @override
   void initState() {
     super.initState();
-    loadRewards();
+    _loadRewardsData();
   }
 
-  Future<void> loadRewards() async {
+  Future<void> _loadRewardsData() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final user = jsonDecode(prefs.getString('user')!);
-    userId = user['userId'];
+    userId = prefs.getInt('userId') ?? widget.userId;
 
-    final res = await http.get(Uri.parse("${api}Rewards"), headers: {
-      'Authorization': 'Bearer $token',
-    });
+    try {
+      final users = await ApiService().fetchUsers();
+      final me = users.firstWhere((u) => u.userId == userId);
+      final availableRewards = await ApiService().fetchRewards();
+      final myRedemptions = await ApiService().fetchRedeemedRewards(userId);
 
-    if (res.statusCode == 200) {
       setState(() {
-        rewards = jsonDecode(res.body);
+        points = me.points ?? 0;
+        rewards = availableRewards;
+        redeemed = myRedemptions..sort((a, b) => b.dateRedeemed.compareTo(a.dateRedeemed));
+        isLoading = false;
       });
-      loadRedeemed();
+    } catch (e) {
+      print("❌ Error loading child rewards: $e");
+      setState(() => isLoading = false);
     }
   }
 
-  Future<void> loadRedeemed() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final res = await http.get(Uri.parse("${api}RedeemedRewards/$userId"), headers: {
-      'Authorization': 'Bearer $token',
-    });
-
-    if (res.statusCode == 200) {
-      setState(() {
-        redeemed = jsonDecode(res.body);
-      });
-    }
-    loadPoints();
-  }
-
-  Future<void> loadPoints() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final res = await http.get(Uri.parse("${api}Users/$userId"), headers: {
-      'Authorization': 'Bearer $token',
-    });
-
-    if (res.statusCode == 200) {
-      setState(() {
-        points = jsonDecode(res.body)['points'] ?? 0;
-      });
-    }
-  }
-
-  Future<void> redeemReward(Map reward) async {
-    if (points < reward['cost']) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Not enough points.")));
+  Future<void> _redeemReward(Reward reward) async {
+    if (points < reward.cost) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Not enough points to redeem this reward.")),
+      );
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final body = {
-      "redemptionId": 0,
-      "userId": userId,
-      "rewardId": reward['rewardId'],
-      "rewardName": reward['name'],
-      "pointsSpent": reward['cost'],
-      "dateRedeemed": DateFormat('yyyy-MM-dd').format(DateTime.now()),
-    };
-
-    final postRes = await http.post(
-      Uri.parse("${api}RedeemedRewards"),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
-
-    if (postRes.statusCode == 200 || postRes.statusCode == 201) {
-      final updatedPoints = points - reward['cost'];
-      final updateRes = await http.put(
-        Uri.parse("${api}Users/$userId/points"),
-        headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
-        body: jsonEncode({"points": updatedPoints}),
+    try {
+      final redemption = RedeemedReward(
+        redemptionId: 0,
+        userId: userId,
+        rewardId: reward.rewardId,
+        name: reward.name,
+        pointsSpent: reward.cost,
+        dateRedeemed: DateTime.now().toIso8601String().split('T')[0],
       );
 
-      if (updateRes.statusCode == 200 || updateRes.statusCode == 204) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Redeemed ${reward['name']}!")));
-        loadRewards(); // Refresh
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to update points.")));
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Redemption failed.")));
+      final saved = await ApiService().postRedeemedReward(redemption);
+      final updatedPoints = points - reward.cost;
+
+      await ApiService().updateUserPoints(userId, updatedPoints);
+
+      setState(() {
+        points = updatedPoints;
+        redeemed.insert(0, saved);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("🎉 You redeemed: ${reward.name}")),
+      );
+    } catch (e) {
+      print("❌ Failed to redeem reward: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Could not complete redemption.")),
+      );
     }
-  }
-
-  Widget rewardItem(Map reward) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text("${reward['name']} - ${reward['cost']} pts"),
-        ElevatedButton(onPressed: () => redeemReward(reward), child: Text("Redeem")),
-      ],
-    );
-  }
-
-  Widget redeemedItem(Map item) {
-    final name = item['rewardName'] ?? rewards.firstWhere(
-          (r) => r['rewardId'] == item['rewardId'],
-      orElse: () => {'name': 'Unnamed'},
-    )['name'];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Text("$name - ${item['pointsSpent']} pts\nRedeemed on: ${item['dateRedeemed']}"),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-        data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-        child: Scaffold(
-            appBar: AppBar(
-              title: const Text('Child Rewards'),
-              actions: [
-                Row(
-                  children: [
-                    const Text("🌙", style: TextStyle(fontSize: 16)),
-                    Switch(
-                      value: _isDarkMode,
-                      onChanged: _toggleTheme,
+    return Scaffold(
+      appBar: AppBar(title: const Text("Child Rewards")),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Unspent Points: $points", style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 16),
+
+              const Text("Available Rewards", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              rewards.isEmpty
+                  ? const Text("No rewards available.")
+                  : ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: rewards.length,
+                itemBuilder: (context, index) {
+                  final reward = rewards[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text("${reward.name} - ${reward.cost} pts"),
+                      trailing: ElevatedButton(
+                        onPressed: () => _redeemReward(reward),
+                        child: const Text("Redeem"),
+                      ),
                     ),
-                  ],
-                ),
-              ],
-            ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 20),
+                  );
+                },
+              ),
 
-            Text("Unspent Points: $points", style: TextStyle(fontSize: 18)),
-            SizedBox(height: 16),
+              const SizedBox(height: 20),
+              const Divider(),
+              const SizedBox(height: 10),
 
-            Text("Available Rewards", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            if (rewards.isEmpty) Text("No rewards available.")
-            else ...rewards.map((r) => rewardItem(r)),
-
-            Divider(height: 32, thickness: 1),
-
-            Text("Redemption History", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            if (redeemed.isEmpty) Text("No redemptions yet.")
-            else ...redeemed.map((r) => redeemedItem(r)),
-          ],
+              const Text("Redeemed Rewards History", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              redeemed.isEmpty
+                  ? const Text("You haven't redeemed any rewards yet.")
+                  : ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: redeemed.length,
+                itemBuilder: (context, index) {
+                  final r = redeemed[index];
+                  return ListTile(
+                    title: Text("${r.name} - ${r.pointsSpent} pts"),
+                    subtitle: Text("Redeemed on: ${r.dateRedeemed}"),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
-      // Bottom navigation bar using custom BottomAppBar with 4 buttons
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.blueGrey[50],
-        shape: const CircularNotchedRectangle(),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _bottomButton('Dashboard', _goToChildDashbaordScreen),
-            _bottomButton('Chore List', _goToChoreListScreen),
-            _bottomButton('Rewards', _goToRewardsScreen),
-            _bottomButton('Log Out', _logout),
-          ],
-        ),
-      ),
-    ),
     );
   }
 }
