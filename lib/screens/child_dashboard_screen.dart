@@ -1,40 +1,37 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/api_service.dart';
+import '../models/chore_model.dart';
+import '../models/user_model.dart';
+import '../models/level_model.dart';
 
 class ChildDashboardScreen extends StatefulWidget {
   final int userId;
   const ChildDashboardScreen({super.key, required this.userId});
 
   @override
-  _ChildDashboardScreenState createState() => _ChildDashboardScreenState();
+  State<ChildDashboardScreen> createState() => _ChildDashboardScreenState();
 }
 
 class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
-  int? userId;
+  bool _isDarkMode = false;
+  int userId = -1;
+  List<Chore> allChores = [];
+  DateTime? selectedDate;
+  String username = '';
   int totalPoints = 0;
   int unspentPoints = 0;
-  List<dynamic> chores = [];
-  DateTime? selectedDate;
 
-  final api = "https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/";
-  final levelThresholds = [0, 200, 400, 600, 1000, 10000];
-  final levelNames = ["Beginner", "Rising Star", "Helper Pro", "Superstar", "Legend"];
-  final levelColors = [Colors.grey, Colors.green[200], Colors.blue[200], Colors.yellow[200], Colors.orange[200]];
-
-
-  // 🌙 Track dark mode state
-  bool _isDarkMode = false;
-
-  // 🌙 Toggle dark mode on or off
   void _toggleTheme(bool value) {
-    setState(() {
-      _isDarkMode = value;
-    });
+    setState(() => _isDarkMode = value);
   }
-  // Helper widget to create each bottom button with icon and label
+
+  void _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+  }
+
   Widget _bottomButton(String label, VoidCallback onPressed) {
     return TextButton(
       onPressed: onPressed,
@@ -48,13 +45,12 @@ class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
     );
   }
 
-  // Returns the correct icon based on the label
   IconData _getIconForLabel(String label) {
     switch (label) {
       case 'Dashboard':
         return Icons.dashboard;
-      case 'Chore List':
-        return Icons.add;
+      case 'Chores':
+        return Icons.check_box;
       case 'Rewards':
         return Icons.card_giftcard;
       case 'Log Out':
@@ -64,89 +60,110 @@ class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
     }
   }
 
-  // Navigates to Parent Dashboard screen
-  void _goToChildDashbaordScreen() {
-    Navigator.pushNamed(context, '/childDashboard', arguments: widget.userId);
-  }
-  // Navigates to Add Chore screen
-  void _goToChoreListScreen() {
-    Navigator.pushNamed(context, '/choresList', arguments: widget.userId);
+  void _goToChoresScreen() {
+    Navigator.pushNamed(context, '/choresList', arguments: userId);
   }
 
-  // Navigates to Rewards screen
   void _goToRewardsScreen() {
-    Navigator.pushNamed(context, '/childRewards', arguments: widget.userId);
+    Navigator.pushNamed(context, '/childRewards', arguments: userId);
   }
 
-  // Logs out and navigates to Sign In screen
-  void _logout() {
-    Navigator.pushReplacementNamed(context, '/signin');
+  void _goToDashboardScreen() {
+    Navigator.pushNamed(context, '/childDashboard', arguments: userId);
+  }
+
+  void _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() => selectedDate = picked);
+    }
+  }
+
+  void _clearDate() {
+    setState(() => selectedDate = null);
+  }
+
+  Future<void> _loadDashboard() async {
+    final prefs = await SharedPreferences.getInstance();
+    userId = prefs.getInt('userId') ?? -1;
+
+    try {
+      allChores = await ApiService().fetchChores();
+      final users = await ApiService().fetchUsers();
+      final user = users.firstWhere((u) => u.userId == userId);
+      setState(() {
+        username = user.username;
+        totalPoints = user.totalPoints ?? 0;
+        unspentPoints = user.points ?? 0;
+      });
+    } catch (e) {
+      print("Failed to load dashboard: $e");
+    }
+  }
+
+  List<Widget> buildChoreList() {
+    final pendingChores = allChores.where((chore) {
+      if (chore.assignedTo != userId || chore.completed == true) return false;
+      if (chore.dateAssigned == null) return false;
+
+      final parsedDate = DateTime.tryParse(chore.dateAssigned!);
+      if (parsedDate == null) return false;
+
+      if (selectedDate != null) {
+        return parsedDate.year == selectedDate!.year &&
+            parsedDate.month == selectedDate!.month &&
+            parsedDate.day == selectedDate!.day;
+      }
+
+      return true;
+    }).toList()
+      ..sort((a, b) => a.dateAssigned!.compareTo(b.dateAssigned!));
+
+    if (pendingChores.isEmpty) {
+      return [const Text("No chores found.")];
+    }
+
+    return pendingChores.map((chore) {
+      return ListTile(
+        title: Text('${chore.choreText} - ${chore.dateAssigned}'),
+        subtitle: Text('${chore.points ?? 0} pts'),
+      );
+    }).toList();
+  }
+
+  Widget buildChildLevel() {
+    final level = Level.getLevel(totalPoints);
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      color: level.color,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              '$username - ${level.name} - $totalPoints pts',
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void initState() {
     super.initState();
-    fetchData();
-  }
-
-  int getLevelIndex(int pts) {
-    for (int i = 0; i < levelThresholds.length; i++) {
-      if (pts < levelThresholds[i]) return i - 1 >= 0 ? i - 1 : 0;
-    }
-    return levelThresholds.length - 2;
-  }
-
-  Future<void> fetchData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final user = jsonDecode(prefs.getString('user')!);
-    userId = user['userId'];
-
-    final choresRes = await http.get(
-      Uri.parse("${api}Chores"),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    final userRes = await http.get(
-      Uri.parse("${api}Users/$userId"),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (choresRes.statusCode == 200 && userRes.statusCode == 200) {
-      final allChores = jsonDecode(choresRes.body);
-      final currentUser = jsonDecode(userRes.body);
-
-      setState(() {
-        chores = allChores.where((c) => c['assignedTo'] == userId).toList();
-        totalPoints = currentUser['totalPoints'];
-        unspentPoints = currentUser['points'];
-      });
-    }
-  }
-
-  List<dynamic> get visibleChores {
-    final upcoming = chores.where((c) => !c['completed']).toList();
-    if (selectedDate != null) {
-      return upcoming.where((c) {
-        final d = DateTime.parse(c['dateAssigned']);
-        return d.year == selectedDate!.year && d.month == selectedDate!.month && d.day == selectedDate!.day;
-      }).toList();
-    } else {
-      final today = DateTime.now();
-      final future = today.add(Duration(days: 7));
-      return upcoming.where((c) {
-        final d = DateTime.parse(c['dateAssigned']);
-        return d.isAfter(today.subtract(Duration(days: 1))) && d.isBefore(future);
-      }).toList();
-    }
+    _loadDashboard();
   }
 
   @override
   Widget build(BuildContext context) {
-    final levelIndex = getLevelIndex(totalPoints);
-    final levelName = levelNames[levelIndex];
-    final levelColor = levelColors[levelIndex]!;
-    final nextLevel = levelThresholds[levelIndex + 1];
-
     return Theme(
       data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       child: Scaffold(
@@ -156,99 +173,61 @@ class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
             Row(
               children: [
                 const Text("🌙", style: TextStyle(fontSize: 16)),
-                Switch(
-                  value: _isDarkMode,
-                  onChanged: _toggleTheme,
-                ),
+                Switch(value: _isDarkMode, onChanged: _toggleTheme),
               ],
             ),
           ],
         ),
-    body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Total Points: $totalPoints"),
-            Text("Unspent Points: $unspentPoints"),
-            Container(
-              padding: EdgeInsets.all(12),
-              color: levelColor,
-              child: Text("Level ${levelIndex + 1} ($levelName) - $totalPoints pts"),
-            ),
-            SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: totalPoints / nextLevel,
-              minHeight: 10,
-            ),
-
-            SizedBox(height: 12),
-            Row(
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ElevatedButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                      setState(() {
-                        selectedDate = picked;
-                      });
-                    }
-                  },
-                  child: Text("Select Date"),
+                Text('Welcome, $username!', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text('Unspent Points: $unspentPoints pts'),
+                const SizedBox(height: 8),
+                buildChildLevel(),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _selectDate,
+                      child: const Text("Select Date"),
+                    ),
+                    ElevatedButton(
+                      onPressed: _clearDate,
+                      child: const Text("Clear Filter"),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() => selectedDate = null);
-                  },
-                  child: Text("Clear Date"),
+                const SizedBox(height: 20),
+                Text(
+                  selectedDate == null
+                      ? 'All Pending Chores'
+                      : 'Chores for ${selectedDate!.toLocal().toString().split(" ")[0]}',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+                ...buildChoreList(),
               ],
             ),
-
-            SizedBox(height: 12),
-            Text(
-              selectedDate != null
-                  ? "Chores for ${DateFormat('yyyy-MM-dd').format(selectedDate!)}"
-                  : "Upcoming Chores (Next 7 Days)",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-
-            ...visibleChores.map((c) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Text("${c['choreText']}\nDue: ${c['dateAssigned']} — ${c['points']} pts"),
-            )),
-
-            if (visibleChores.isEmpty)
-              Text(selectedDate == null ? "No upcoming chores." : "No chores for selected date."),
-
-            SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [],
-            ),
-          ],
+          ),
+        ),
+        bottomNavigationBar: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _bottomButton('Dashboard', _goToDashboardScreen),
+              _bottomButton('Chores', _goToChoresScreen),
+              _bottomButton('Rewards', _goToRewardsScreen),
+              _bottomButton('Log Out', _logout),
+            ],
+          ),
         ),
       ),
-      // Bottom navigation bar using custom BottomAppBar with 4 buttons
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.blueGrey[50],
-        shape: const CircularNotchedRectangle(),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _bottomButton('Dashboard', _goToChildDashbaordScreen),
-            _bottomButton('Chore List', _goToChoreListScreen),
-            _bottomButton('Rewards', _goToRewardsScreen),
-            _bottomButton('Log Out', _logout),
-          ],
-        ),
-      ),
-    ));
+    );
   }
 }
