@@ -1,34 +1,165 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
+import '../models/chore_model.dart';
+import '../models/completed_chore_model.dart';
+import '../models/user_model.dart';
+import '../services/api_service.dart';
 
 class ChoresListScreen extends StatefulWidget {
   final int userId;
   const ChoresListScreen({super.key, required this.userId});
 
   @override
-  _ChoresListScreenState createState() => _ChoresListScreenState();
+  State<ChoresListScreen> createState() => _ChoresListScreenState();
 }
 
 class _ChoresListScreenState extends State<ChoresListScreen> {
-  int? userId;
-  int points = 0;
-  List<dynamic> allChores = [];
-  List<dynamic> completedChores = [];
-
-
-  // 🌙 Track dark mode state
   bool _isDarkMode = false;
+  int userId = -1;
+  int points = 0;
+  int total = 0;
+  int completed = 0;
+  DateTime? selectedDate;
+  List<Chore> chores = [];
+  List<CompletedChore> completedChores = [];
+  bool pendingExpanded = true;
+  bool completedExpanded = false;
 
-  // 🌙 Toggle dark mode on or off
   void _toggleTheme(bool value) {
-    setState(() {
-      _isDarkMode = value;
-    });
+    setState(() => _isDarkMode = value);
   }
-  // Helper widget to create each bottom button with icon and label
+
+  void _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+  }
+
+  void _goToDashboardScreen() {
+    Navigator.pushNamed(context, '/childDashboard', arguments: userId);
+  }
+
+  void _goToChoresScreen() {
+    Navigator.pushNamed(context, '/choresList', arguments: userId);
+  }
+
+  void _goToRewardsScreen() {
+    Navigator.pushNamed(context, '/childRewards', arguments: userId);
+  }
+
+  void _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() => selectedDate = picked);
+    }
+  }
+
+  void _clearDate() {
+    setState(() => selectedDate = null);
+  }
+
+  Future<void> _fetchData() async {
+    final prefs = await SharedPreferences.getInstance();
+    userId = prefs.getInt('userId') ?? -1;
+
+    try {
+      final users = await ApiService().fetchUsers();
+      final me = users.firstWhere((u) => u.userId == userId);
+      final allChores = await ApiService().fetchChores();
+      final allCompleted = await ApiService().fetchCompletedChores();
+
+      final myChores = allChores.where((c) => c.assignedTo == userId).toList();
+      final myCompleted = allCompleted
+          .where((c) => c.assignedTo == userId)
+          .toList()
+        ..sort((a, b) => b.completionDate.compareTo(a.completionDate));
+
+      setState(() {
+        chores = myChores;
+        completedChores = myCompleted;
+        points = me.points ?? 0;
+        total = myChores.length + myCompleted.length;
+        completed = myCompleted.length;
+      });
+    } catch (e) {
+      print("Error loading data: $e");
+    }
+  }
+
+  List<Widget> buildChoreList({required bool completedOnly}) {
+    if (completedOnly) {
+      final filtered = completedChores.where((c) {
+        if (selectedDate == null) return true;
+        final d = DateTime.tryParse(c.completionDate);
+        return d != null &&
+            d.year == selectedDate!.year &&
+            d.month == selectedDate!.month &&
+            d.day == selectedDate!.day;
+      }).toList();
+
+      if (filtered.isEmpty) return [const Text("No completed chores.")];
+
+      return filtered.map((chore) {
+        return ListTile(
+          title: Text('${chore.choreText}'),
+          subtitle: Text('${chore.points} pts — ${chore.completionDate}'),
+          trailing: IconButton(
+            icon: const Icon(Icons.undo, color: Colors.blue),
+            tooltip: 'Undo',
+            onPressed: () => _undoCompletedChore(chore.completedId),
+          ),
+        );
+      }).toList();
+    } else {
+      final filtered = chores.where((c) {
+        if (c.completed == true || c.dateAssigned == null) return false;
+        final d = DateTime.tryParse(c.dateAssigned!);
+        if (d == null) return false;
+        if (selectedDate == null) return true;
+        return d.year == selectedDate!.year &&
+            d.month == selectedDate!.month &&
+            d.day == selectedDate!.day;
+      }).toList();
+
+      if (filtered.isEmpty) return [const Text("No pending chores.")];
+
+      return filtered.map((chore) {
+        return ListTile(
+          title: Text('${chore.choreText} - ${chore.dateAssigned}'),
+          subtitle: Text('${chore.points ?? 0} pts'),
+          trailing: IconButton(
+            icon: const Icon(Icons.check_circle, color: Colors.green),
+            tooltip: 'Mark as complete',
+            onPressed: () => _completeChore(chore),
+          ),
+        );
+      }).toList();
+    }
+  }
+
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  void _completeChore(Chore chore) async {
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    await ApiService().completeChoreWithDate(chore.choreId, today);
+    _fetchData();
+  }
+
+  void _undoCompletedChore(int completedId) async {
+    await ApiService().undoCompletedChore(completedId);
+    _fetchData();
+  }
+
   Widget _bottomButton(String label, VoidCallback onPressed) {
     return TextButton(
       onPressed: onPressed,
@@ -42,132 +173,21 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
     );
   }
 
-  // Returns the correct icon based on the label
   IconData _getIconForLabel(String label) {
     switch (label) {
-      case 'Dashboard':
-        return Icons.dashboard;
-      case 'Chore List':
-        return Icons.add;
-      case 'Rewards':
-        return Icons.card_giftcard;
-      case 'Log Out':
-        return Icons.logout;
-      default:
-        return Icons.help_outline;
+      case 'Dashboard': return Icons.dashboard;
+      case 'Chores': return Icons.check_box;
+      case 'Rewards': return Icons.card_giftcard;
+      case 'Log Out': return Icons.logout;
+      case 'Undo': return Icons.undo;
+      default: return Icons.help_outline;
     }
-  }
-
-  // Navigates to Parent Dashboard screen
-  void _goToChildDashbaordScreen() {
-    Navigator.pushNamed(context, '/childDashboard', arguments: widget.userId);
-  }
-  // Navigates to Add Chore screen
-  void _goToChoreListScreen() {
-    Navigator.pushNamed(context, '/choresList', arguments: widget.userId);
-  }
-
-  // Navigates to Rewards screen
-  void _goToRewardsScreen() {
-    Navigator.pushNamed(context, '/childRewards', arguments: widget.userId);
-  }
-
-  // Logs out and navigates to Sign In screen
-  void _logout() {
-    Navigator.pushReplacementNamed(context, '/signin');
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    loadData();
-  }
-
-  Future<void> loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final user = jsonDecode(prefs.getString('user')!);
-    userId = user['userId'];
-
-    final choresRes = await http.get(
-      Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Chores'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    final completedRes = await http.get(
-      Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Chores/completed'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    final userRes = await http.get(
-      Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Users/${userId}'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (choresRes.statusCode == 200 && completedRes.statusCode == 200 && userRes.statusCode == 200) {
-      setState(() {
-        allChores = jsonDecode(choresRes.body)
-            .where((c) => c['assignedTo'] == userId)
-            .toList();
-        completedChores = jsonDecode(completedRes.body)
-            .where((c) => c['assignedTo'] == userId)
-            .toList();
-        points = jsonDecode(userRes.body)['points'] ?? 0;
-      });
-    }
-  }
-
-  List<dynamic> get pendingChores => allChores.where((c) => !c['completed']).toList();
-
-  List<dynamic> get recentCompleted {
-    final sevenDaysAgo = DateTime.now().subtract(Duration(days: 7));
-    return completedChores.where((c) {
-      final date = DateTime.parse(c['dateAssigned']);
-      return date.isAfter(sevenDaysAgo);
-    }).toList();
-  }
-
-  int get progressPercent => (allChores.isNotEmpty && allChores.every((c) => c['completed'])) ? 100 : 0;
-
-  Future<void> markComplete(int choreId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    await http.post(
-      Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Chores/complete/$choreId'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    await loadData();
-  }
-
-  Future<void> undoComplete(int choreId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    await http.post(
-      Uri.parse('https://sameteamapiazure-gfawexgsaph0cvg2.centralus-01.azurewebsites.net/api/Chores/undoComplete/$choreId'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    await loadData();
-  }
-
-  Widget buildChoreItem(Map chore, bool isPending) {
-    final textStyle = isPending ? null : TextStyle(decoration: TextDecoration.lineThrough);
-    final dateLabel = isPending ? "Due" : "Completed on";
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("${chore['choreText']} (${chore['points']} pts)", style: textStyle),
-          Text("$dateLabel: ${chore['dateAssigned']}"),
-          ElevatedButton(
-            onPressed: () => isPending ? markComplete(chore['choreId']) : undoComplete(chore['choreId']),
-            child: Text(isPending ? "Complete" : "Undo"),
-          )
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    double progress = total == 0 ? 0 : completed / total;
+
     return Theme(
       data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       child: Scaffold(
@@ -177,60 +197,53 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
             Row(
               children: [
                 const Text("🌙", style: TextStyle(fontSize: 16)),
-                Switch(
-                  value: _isDarkMode,
-                  onChanged: _toggleTheme,
-                ),
+                Switch(value: _isDarkMode, onChanged: _toggleTheme),
               ],
             ),
           ],
         ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Navigation
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [],
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Your Unspent Points: $points'),
+                const SizedBox(height: 4),
+                Text('Task Completion Progress: ${(progress * 100).toStringAsFixed(0)}%'),
+                LinearProgressIndicator(value: progress),
+                const SizedBox(height: 16),
+
+                ExpansionTile(
+                  title: const Text("Pending Chores", style: TextStyle(fontWeight: FontWeight.bold)),
+                  initiallyExpanded: pendingExpanded,
+                  onExpansionChanged: (val) => setState(() => pendingExpanded = val),
+                  children: buildChoreList(completedOnly: false),
+                ),
+                const SizedBox(height: 8),
+                ExpansionTile(
+                  title: const Text("Completed Chores", style: TextStyle(fontWeight: FontWeight.bold)),
+                  initiallyExpanded: completedExpanded,
+                  onExpansionChanged: (val) => setState(() => completedExpanded = val),
+                  children: buildChoreList(completedOnly: true),
+                ),
+              ],
             ),
-            SizedBox(height: 20),
-
-            Text("Your Points: $points", style: TextStyle(fontSize: 18)),
-            Text("Task Completion Progress: $progressPercent%", style: TextStyle(fontSize: 18)),
-            LinearProgressIndicator(value: progressPercent / 100),
-            SizedBox(height: 20),
-
-            Text("Pending Chores", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            if (pendingChores.isEmpty)
-              Text("No pending chores.")
-            else
-              ...pendingChores.map((c) => buildChoreItem(c, true)),
-
-            SizedBox(height: 20),
-            Text("Completed Chores", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            if (recentCompleted.isEmpty)
-              Text("No completed chores.")
-            else
-              ...recentCompleted.map((c) => buildChoreItem(c, false)),
-          ],
+          ),
+        ),
+        bottomNavigationBar: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _bottomButton('Dashboard', _goToDashboardScreen),
+              _bottomButton('Chores', _goToChoresScreen),
+              _bottomButton('Rewards', _goToRewardsScreen),
+              _bottomButton('Log Out', _logout),
+            ],
+          ),
         ),
       ),
-      // Bottom navigation bar using custom BottomAppBar with 4 buttons
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.blueGrey[50],
-        shape: const CircularNotchedRectangle(),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _bottomButton('Dashboard', _goToChildDashbaordScreen),
-            _bottomButton('Chore List', _goToChoreListScreen),
-            _bottomButton('Rewards', _goToRewardsScreen),
-            _bottomButton('Log Out', _logout),
-          ],
-        ),
-      ),
-    ));
+    );
   }
 }
