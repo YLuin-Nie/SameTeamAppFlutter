@@ -8,6 +8,10 @@ import '../widgets/dialogs/add_to_team_dialog.dart';
 import '../models/user_model.dart';
 import '../models/chore_model.dart';
 import '../models/level_model.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/theme_toggle_switch.dart';
+
 
 class ParentDashboardScreen extends StatefulWidget {
   final int userId;
@@ -25,13 +29,6 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   List<Chore> allChores = [];
   DateTime? selectedChoreDate;
   List<Chore> choresForSelectedDate = [];
-  bool _isDarkMode = false;
-
-  void _toggleTheme(bool value) {
-    setState(() {
-      _isDarkMode = value;
-    });
-  }
 
   Widget _bottomButton(String label, VoidCallback onPressed) {
     return TextButton(
@@ -273,84 +270,85 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Parent Dashboard'),
-          actions: [
-            Row(
-              children: [
-                const Text("🌙", style: TextStyle(fontSize: 16)),
-                Switch(value: _isDarkMode, onChanged: _toggleTheme),
-              ],
-            ),
-          ],
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Team: $teamName', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildActionButton('Create Team', _showCreateTeamDialog),
-                    _buildActionButton('Join Team', _showJoinTeamDialog),
-                    _buildActionButton('Add to Team', _showAddToTeamDialog),
-                  ],
-                ),
-                const Text('Children:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                ...buildChildLevels(),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _openDatePicker,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                      child: const Text("Select a Date"),
-                    ),
-                    ElevatedButton(
-                      onPressed: _clearDateFilter,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                      child: const Text("Clear Date Filter"),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  selectedDate == null
-                      ? 'ALL Pending Chores'
-                      : 'Chores for ${selectedDate!
-                      .toLocal()
-                      .toString()
-                      .split(" ")[0]}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                ...buildUpcomingChores(),
-                const SizedBox(height: 10),
-              ],
-            ),
-          ),
-        ),
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _bottomButton('Dashboard', _goToParentDashbaordScreen),
-              _bottomButton('Add Chore', _goToAddChoreScreen),
-              _bottomButton('Rewards', _goToRewardsScreen),
-              _bottomButton('Log Out', _logout),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Parent Dashboard'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: ThemeToggleSwitch(),
+              ),
             ],
           ),
-        ),
-      ),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Team: $teamName',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildActionButton('Create Team', _showCreateTeamDialog),
+                      _buildActionButton('Join Team', _showJoinTeamDialog),
+                      _buildActionButton('Add to Team', _showAddToTeamDialog),
+                    ],
+                  ),
+                  const Text('Children:',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  ...buildChildLevels(),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _openDatePicker,
+                        style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                        child: const Text("Select a Date"),
+                      ),
+                      ElevatedButton(
+                        onPressed: _clearDateFilter,
+                        style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                        child: const Text("Clear Date Filter"),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    selectedDate == null
+                        ? 'ALL Pending Chores'
+                        : 'Chores for ${selectedDate!.toLocal().toString().split(" ")[0]}',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  ...buildUpcomingChores(),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          ),
+          bottomNavigationBar: BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _bottomButton('Dashboard', _goToParentDashbaordScreen),
+                _bottomButton('Add Chore', _goToAddChoreScreen),
+                _bottomButton('Rewards', _goToRewardsScreen),
+                _bottomButton('Log Out', _logout),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

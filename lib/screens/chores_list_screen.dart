@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../models/chore_model.dart';
 import '../models/completed_chore_model.dart';
 import '../services/api_service.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/theme_toggle_switch.dart';
 
 class ChoresListScreen extends StatefulWidget {
   final int userId;
@@ -14,7 +17,6 @@ class ChoresListScreen extends StatefulWidget {
 }
 
 class _ChoresListScreenState extends State<ChoresListScreen> {
-  bool _isDarkMode = false;
   int userId = -1;
   int points = 0;
   int total = 0;
@@ -24,10 +26,6 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
   List<CompletedChore> completedChores = [];
   bool pendingExpanded = true;
   bool completedExpanded = false;
-
-  void _toggleTheme(bool value) {
-    setState(() => _isDarkMode = value);
-  }
 
   void _logout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -164,12 +162,18 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
 
   IconData _getIconForLabel(String label) {
     switch (label) {
-      case 'Dashboard': return Icons.dashboard;
-      case 'Chores': return Icons.check_box;
-      case 'Rewards': return Icons.card_giftcard;
-      case 'Log Out': return Icons.logout;
-      case 'Undo': return Icons.undo;
-      default: return Icons.help_outline;
+      case 'Dashboard':
+        return Icons.dashboard;
+      case 'Chores':
+        return Icons.check_box;
+      case 'Rewards':
+        return Icons.card_giftcard;
+      case 'Log Out':
+        return Icons.logout;
+      case 'Undo':
+        return Icons.undo;
+      default:
+        return Icons.help_outline;
     }
   }
 
@@ -177,62 +181,60 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
   Widget build(BuildContext context) {
     double progress = total == 0 ? 0 : completed / total;
 
-    return Theme(
-      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Chores List'),
-          actions: [
-            Row(
-              children: [
-                const Text("🌙", style: TextStyle(fontSize: 16)),
-                Switch(value: _isDarkMode, onChanged: _toggleTheme),
-              ],
-            ),
-          ],
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Your Unspent Points: $points'),
-                const SizedBox(height: 4),
-                Text('Task Completion Progress: ${(progress * 100).toStringAsFixed(0)}%'),
-                LinearProgressIndicator(value: progress),
-                const SizedBox(height: 16),
-
-                ExpansionTile(
-                  title: const Text("Pending Chores", style: TextStyle(fontWeight: FontWeight.bold)),
-                  initiallyExpanded: pendingExpanded,
-                  onExpansionChanged: (val) => setState(() => pendingExpanded = val),
-                  children: buildChoreList(completedOnly: false),
-                ),
-                const SizedBox(height: 8),
-                ExpansionTile(
-                  title: const Text("Completed Chores", style: TextStyle(fontWeight: FontWeight.bold)),
-                  initiallyExpanded: completedExpanded,
-                  onExpansionChanged: (val) => setState(() => completedExpanded = val),
-                  children: buildChoreList(completedOnly: true),
-                ),
-              ],
-            ),
-          ),
-        ),
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _bottomButton('Dashboard', _goToDashboardScreen),
-              _bottomButton('Chores', _goToChoresScreen),
-              _bottomButton('Rewards', _goToRewardsScreen),
-              _bottomButton('Log Out', _logout),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Chores List'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: ThemeToggleSwitch(),
+              ),
             ],
           ),
-        ),
-      ),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Your Unspent Points: $points'),
+                  const SizedBox(height: 4),
+                  Text('Task Completion Progress: ${(progress * 100).toStringAsFixed(0)}%'),
+                  LinearProgressIndicator(value: progress),
+                  const SizedBox(height: 16),
+                  ExpansionTile(
+                    title: const Text("Pending Chores", style: TextStyle(fontWeight: FontWeight.bold)),
+                    initiallyExpanded: pendingExpanded,
+                    onExpansionChanged: (val) => setState(() => pendingExpanded = val),
+                    children: buildChoreList(completedOnly: false),
+                  ),
+                  const SizedBox(height: 8),
+                  ExpansionTile(
+                    title: const Text("Completed Chores", style: TextStyle(fontWeight: FontWeight.bold)),
+                    initiallyExpanded: completedExpanded,
+                    onExpansionChanged: (val) => setState(() => completedExpanded = val),
+                    children: buildChoreList(completedOnly: true),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          bottomNavigationBar: BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _bottomButton('Dashboard', _goToDashboardScreen),
+                _bottomButton('Chores', _goToChoresScreen),
+                _bottomButton('Rewards', _goToRewardsScreen),
+                _bottomButton('Log Out', _logout),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

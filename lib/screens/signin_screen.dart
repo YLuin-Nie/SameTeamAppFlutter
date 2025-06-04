@@ -5,7 +5,7 @@ import '../models/login_models.dart';
 import '../services/api_service.dart';
 import '../screens/parent_dashboard_screen.dart';
 import '../screens/child_dashboard_screen.dart';
-
+import '../widgets/theme_toggle_switch.dart';
 
 class SignInScreen extends StatefulWidget {
   final int userId;
@@ -18,24 +18,11 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  DateTime? selectedDate;
   bool showPassword = false;
   bool isLoading = false;
 
-  // 🌙 Track dark mode state
-  bool _isDarkMode = false;
-
-  // 🌙 Toggle dark mode on or off
-  void _toggleTheme(bool value) {
-    setState(() {
-      _isDarkMode = value;
-    });
-  }
-
   Future<void> _handleSignIn() async {
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -44,37 +31,32 @@ class _SignInScreenState extends State<SignInScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter both email and password')),
       );
+      setState(() => isLoading = false);
       return;
     }
-
-    setState(() => isLoading = true);
 
     try {
       final loginRequest = LoginRequest(email: email, password: password);
       final loginResponse = await ApiService().login(loginRequest);
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', loginResponse.token);
-        await prefs.setInt('userId', loginResponse.user.userId);
-        await prefs.setString('role', loginResponse.user.role);
-        await prefs.setString('loggedInUser', jsonEncode(loginResponse.user));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', loginResponse.token);
+      await prefs.setInt('userId', loginResponse.user.userId);
+      await prefs.setString('role', loginResponse.user.role);
+      await prefs.setString('loggedInUser', jsonEncode(loginResponse.user));
 
       if (loginResponse.user.role == 'Parent') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => ParentDashboardScreen(
-              userId: loginResponse.user.userId,
-            ),
+            builder: (_) => ParentDashboardScreen(userId: loginResponse.user.userId),
           ),
         );
       } else if (loginResponse.user.role == 'Child') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => ChildDashboardScreen(
-              userId: loginResponse.user.userId,
-            ),
+            builder: (_) => ChildDashboardScreen(userId: loginResponse.user.userId),
           ),
         );
       }
@@ -89,57 +71,64 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Sign In'),
-          actions: [
-            Row(
-              children: [
-                const Text("🌙", style: TextStyle(fontSize: 16)),
-                Switch(
-                  value: _isDarkMode,
-                  onChanged: _toggleTheme,
+    final theme = Theme.of(context);
+    final textColor = theme.textTheme.bodyLarge?.color;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Sign In', style: theme.textTheme.titleLarge),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: ThemeToggleSwitch(),
+          ),
+        ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            TextFormField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+              keyboardType: TextInputType.emailAddress,
+              style: TextStyle(color: textColor),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _passwordController,
+              obscureText: !showPassword,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                suffixIcon: IconButton(
+                  icon: Icon(showPassword ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => showPassword = !showPassword),
                 ),
-              ],
+              ),
+              style: TextStyle(color: textColor),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+              ),
+              onPressed: _handleSignIn,
+              child: const Text('Sign In'),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text(
+                'Don\'t have an account? Sign up',
+                style: TextStyle(color: theme.colorScheme.primary),
+              ),
             ),
           ],
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                obscureText: !showPassword,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  suffixIcon: IconButton(
-                    icon: Icon(showPassword ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () => setState(() => showPassword = !showPassword),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: isLoading ? null : _handleSignIn,
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Sign In'),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/signup'),
-                child: const Text("Don't have an account? Sign Up"),
-              ),
-            ],
-          ),
         ),
       ),
     );

@@ -6,6 +6,9 @@ import '../../models/completed_chore_model.dart';
 import '../../services/api_service.dart';
 import '../../widgets/dialogs/edit_chore_dialog.dart';
 import '../../widgets/dialogs/add_chore_dialog.dart';
+import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
+import '../../widgets/theme_toggle_switch.dart';
 
 class AddChoreScreen extends StatefulWidget {
   final int userId;
@@ -24,54 +27,6 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
   int userId = -1;
   bool section2Expanded = true;
   bool section3Expanded = true;
-  bool _isDarkMode = false;
-
-  void _toggleTheme(bool value) {
-    setState(() {
-      _isDarkMode = value;
-    });
-  }
-
-  Widget _bottomButton(String label, VoidCallback onPressed) {
-    return TextButton(
-      onPressed: onPressed,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_getIconForLabel(label)),
-          Text(label, style: const TextStyle(fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  IconData _getIconForLabel(String label) {
-    switch (label) {
-      case 'Dashboard': return Icons.dashboard;
-      case 'Add Chore': return Icons.add;
-      case 'Rewards': return Icons.card_giftcard;
-      case 'Log Out': return Icons.logout;
-      default: return Icons.help_outline;
-    }
-  }
-
-  void _goToParentDashbaordScreen() {
-    Navigator.pushNamed(context, '/parentDashboard', arguments: widget.userId);
-  }
-
-  void _goToAddChoreScreen() {
-    Navigator.pushNamed(context, '/addChore', arguments: widget.userId);
-  }
-
-  void _goToRewardsScreen() {
-    Navigator.pushNamed(context, '/parentRewards', arguments: widget.userId);
-  }
-
-  void _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
-  }
 
   @override
   void initState() {
@@ -143,151 +98,211 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
     fetchData();
   }
 
+  void _goToParentDashbaordScreen() {
+    Navigator.pushNamed(context, '/parentDashboard', arguments: widget.userId);
+  }
+
+  void _goToAddChoreScreen() {
+    Navigator.pushNamed(context, '/addChore', arguments: widget.userId);
+  }
+
+  void _goToRewardsScreen() {
+    Navigator.pushNamed(context, '/parentRewards', arguments: widget.userId);
+  }
+
+  void _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+  }
+
+  Widget _bottomButton(String label, VoidCallback onPressed) {
+    return TextButton(
+      onPressed: onPressed,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_getIconForLabel(label)),
+          Text(label, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  IconData _getIconForLabel(String label) {
+    switch (label) {
+      case 'Dashboard':
+        return Icons.dashboard;
+      case 'Add Chore':
+        return Icons.add;
+      case 'Rewards':
+        return Icons.card_giftcard;
+      case 'Log Out':
+        return Icons.logout;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Chore Management'),
-          actions: [
-            Row(
-              children: [
-                const Text("🌙", style: TextStyle(fontSize: 16)),
-                Switch(value: _isDarkMode, onChanged: _toggleTheme),
-              ],
-            ),
-          ],
-        ),
-        body: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
-          padding: const EdgeInsets.all(12),
-          children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text("Add New Chore"),
-              onPressed: () async {
-                final shouldRefresh = await showDialog<bool>(
-                  context: context,
-                  builder: (_) => AddChoreDialog(userId: userId),
-                );
-                if (shouldRefresh == true) fetchData();
-              },
-            ),
-            const SizedBox(height: 16),
-
-            ExpansionTile(
-              title: const Text("All Pending Chores", style: TextStyle(fontWeight: FontWeight.bold)),
-              initiallyExpanded: section2Expanded,
-              onExpansionChanged: (val) => setState(() => section2Expanded = val),
-              children: [
-                ...children.map((child) {
-                  final chores = getPendingChoresForChild(child.userId);
-                  return ExpansionTile(
-                    title: Text(child.username,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    initiallyExpanded: expandedState[child.userId] ?? true,
-                    onExpansionChanged: (expanded) =>
-                        setState(() => expandedState[child.userId] = expanded),
-                    children: chores.isEmpty
-                        ? [const ListTile(title: Text("No pending chores."))]
-                        : chores.map((chore) => ListTile(
-                      title: Text(chore.choreText),
-                      subtitle: Text("Points: ${chore.points} • ${chore.dateAssigned}"),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Tooltip(
-                            message: 'Edit Chore',
-                            child: IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _openEditChoreDialog(chore),
-                            ),
-                          ),
-                          Tooltip(
-                            message: 'Mark as Complete',
-                            child: IconButton(
-                              icon: const Icon(Icons.check_circle, color: Colors.green),
-                              onPressed: () => _completeChore(chore),
-                            ),
-                          ),
-                          Tooltip(
-                            message: 'Delete Chore',
-                            child: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteChore(chore.choreId),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                    ))
-                        .toList(),
-                  );
-                })
-              ],
-            ),
-
-            const SizedBox(height: 20),
-            ExpansionTile(
-              title: const Text("Completed Chores",
-                style: TextStyle(fontWeight: FontWeight.bold),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Chore Management'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: ThemeToggleSwitch(),
               ),
-              initiallyExpanded: section3Expanded,
-              onExpansionChanged: (val) => setState(() => section3Expanded = val),
-              children: [
-                ...completedChores.map((chore) => Container(
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(chore.choreText,
-                              style: TextStyle(fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.lineThrough),
-                              ),
-                            Text(
-                              "Points: ${chore.points} — ${chore.completionDate}",
-                            )
-                          ],
-                        ),
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: () => _undoCompletedChore(chore.completedId),
-                        icon: const Icon(Icons.undo),
-                        label: const Text("Undo"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepPurpleAccent,
-                          foregroundColor: Colors.white,
-                        ),
-                      )
-                    ],
-                  ),
-                ))
-              ],
-            )
-          ],
-        ),
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _bottomButton('Dashboard', _goToParentDashbaordScreen),
-              _bottomButton('Add Chore', _goToAddChoreScreen),
-              _bottomButton('Rewards', _goToRewardsScreen),
-              _bottomButton('Log Out', _logout),
             ],
           ),
-        ),
-      ),
+          body: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add),
+                label: const Text("Add New Chore"),
+                onPressed: () async {
+                  final shouldRefresh = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AddChoreDialog(userId: userId),
+                  );
+                  if (shouldRefresh == true) fetchData();
+                },
+              ),
+              const SizedBox(height: 16),
+              ExpansionTile(
+                title: const Text(
+                  "All Pending Chores",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                initiallyExpanded: section2Expanded,
+                onExpansionChanged: (val) =>
+                    setState(() => section2Expanded = val),
+                children: [
+                  ...children.map((child) {
+                    final chores = getPendingChoresForChild(child.userId);
+                    return ExpansionTile(
+                      title: Text(child.username,
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      initiallyExpanded: expandedState[child.userId] ?? true,
+                      onExpansionChanged: (expanded) =>
+                          setState(() => expandedState[child.userId] = expanded),
+                      children: chores.isEmpty
+                          ? [const ListTile(title: Text("No pending chores."))]
+                          : chores
+                          .map((chore) => ListTile(
+                        title: Text(chore.choreText),
+                        subtitle: Text(
+                            "Points: ${chore.points} • ${chore.dateAssigned}"),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Tooltip(
+                              message: 'Edit Chore',
+                              child: IconButton(
+                                icon: const Icon(Icons.edit,
+                                    color: Colors.blue),
+                                onPressed: () =>
+                                    _openEditChoreDialog(chore),
+                              ),
+                            ),
+                            Tooltip(
+                              message: 'Mark as Complete',
+                              child: IconButton(
+                                icon: const Icon(Icons.check_circle,
+                                    color: Colors.green),
+                                onPressed: () =>
+                                    _completeChore(chore),
+                              ),
+                            ),
+                            Tooltip(
+                              message: 'Delete Chore',
+                              child: IconButton(
+                                icon: const Icon(Icons.delete,
+                                    color: Colors.red),
+                                onPressed: () =>
+                                    _deleteChore(chore.choreId),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ))
+                          .toList(),
+                    );
+                  })
+                ],
+              ),
+              const SizedBox(height: 20),
+              ExpansionTile(
+                title: const Text(
+                  "Completed Chores",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                initiallyExpanded: section3Expanded,
+                onExpansionChanged: (val) =>
+                    setState(() => section3Expanded = val),
+                children: [
+                  ...completedChores.map((chore) => Container(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                chore.choreText,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                              Text(
+                                "Points: ${chore.points} — ${chore.completionDate}",
+                              )
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () =>
+                              _undoCompletedChore(chore.completedId),
+                          icon: const Icon(Icons.undo),
+                          label: const Text("Undo"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurpleAccent,
+                            foregroundColor: Colors.white,
+                          ),
+                        )
+                      ],
+                    ),
+                  ))
+                ],
+              )
+            ],
+          ),
+          bottomNavigationBar: BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _bottomButton('Dashboard', _goToParentDashbaordScreen),
+                _bottomButton('Add Chore', _goToAddChoreScreen),
+                _bottomButton('Rewards', _goToRewardsScreen),
+                _bottomButton('Log Out', _logout),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

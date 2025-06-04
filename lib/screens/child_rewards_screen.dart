@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/reward_model.dart';
 import '../models/redeemed_reward_model.dart';
 import '../services/api_service.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/theme_toggle_switch.dart';
 
 class ChildRewardsScreen extends StatefulWidget {
   final int userId;
@@ -14,16 +17,11 @@ class ChildRewardsScreen extends StatefulWidget {
 }
 
 class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
-  bool _isDarkMode = false;
   int userId = -1;
   int points = 0;
   bool isLoading = true;
   List<Reward> rewards = [];
   List<RedeemedReward> redeemed = [];
-
-  void _toggleTheme(bool value) {
-    setState(() => _isDarkMode = value);
-  }
 
   void _logout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -58,11 +56,16 @@ class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
 
   IconData _getIconForLabel(String label) {
     switch (label) {
-      case 'Dashboard': return Icons.dashboard;
-      case 'Chores': return Icons.check_box;
-      case 'Rewards': return Icons.card_giftcard;
-      case 'Log Out': return Icons.logout;
-      default: return Icons.help_outline;
+      case 'Dashboard':
+        return Icons.dashboard;
+      case 'Chores':
+        return Icons.check_box;
+      case 'Rewards':
+        return Icons.card_giftcard;
+      case 'Log Out':
+        return Icons.logout;
+      default:
+        return Icons.help_outline;
     }
   }
 
@@ -85,7 +88,8 @@ class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
       setState(() {
         points = me.points ?? 0;
         rewards = availableRewards;
-        redeemed = myRedemptions..sort((a, b) => b.dateRedeemed.compareTo(a.dateRedeemed));
+        redeemed = myRedemptions
+          ..sort((a, b) => b.dateRedeemed.compareTo(a.dateRedeemed));
         isLoading = false;
       });
     } catch (e) {
@@ -139,94 +143,93 @@ class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-        data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-        child: Scaffold(
-            appBar: AppBar(
-              title: const Text('Child Rewards'),
-              actions: [
-                Row(
-                  children: [
-                    const Text("🌙", style: TextStyle(fontSize: 16)),
-                    Switch(value: _isDarkMode, onChanged: _toggleTheme),
-                  ],
-                ),
-              ],
-            ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Unspent Points: $points", style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 16),
-
-              const Text("Available Rewards", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              rewards.isEmpty
-                  ? const Text("No rewards available.")
-                  : ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: rewards.length,
-                itemBuilder: (context, index) {
-                  final reward = rewards[index];
-                  return Card(
-                    child: ListTile(
-                      title: Text("${reward.name} - ${reward.cost} pts"),
-                      trailing: Tooltip(
-                        message: 'Redeem',
-                        child: IconButton(
-                          icon: const Icon(Icons.card_giftcard, color: Colors.blue),
-                          onPressed: () => _redeemReward(reward),
-                        ),
-                      ),
-
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 20),
-              const Divider(),
-              const SizedBox(height: 10),
-
-              const Text("Redeemed Rewards History", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              redeemed.isEmpty
-                  ? const Text("You haven't redeemed any rewards yet.")
-                  : ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: redeemed.length,
-                itemBuilder: (context, index) {
-                  final r = redeemed[index];
-                  return ListTile(
-                    title: Text("${r.name} - ${r.pointsSpent} pts"),
-                    subtitle: Text("Redeemed on: ${r.dateRedeemed}"),
-                  );
-                },
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Child Rewards'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: ThemeToggleSwitch(),
               ),
             ],
           ),
-        ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _bottomButton('Dashboard', _goToDashboardScreen),
-            _bottomButton('Chores', _goToChoresScreen),
-            _bottomButton('Rewards', _goToRewardsScreen),
-            _bottomButton('Log Out', _logout),
-          ],
-        ),
-      ),
-        ),
+          body: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Unspent Points: $points", style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 16),
+
+                  const Text("Available Rewards", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  rewards.isEmpty
+                      ? const Text("No rewards available.")
+                      : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: rewards.length,
+                    itemBuilder: (context, index) {
+                      final reward = rewards[index];
+                      return Card(
+                        child: ListTile(
+                          title: Text("${reward.name} - ${reward.cost} pts"),
+                          trailing: Tooltip(
+                            message: 'Redeem',
+                            child: IconButton(
+                              icon: const Icon(Icons.card_giftcard, color: Colors.blue),
+                              onPressed: () => _redeemReward(reward),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 10),
+
+                  const Text("Redeemed Rewards History",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  redeemed.isEmpty
+                      ? const Text("You haven't redeemed any rewards yet.")
+                      : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: redeemed.length,
+                    itemBuilder: (context, index) {
+                      final r = redeemed[index];
+                      return ListTile(
+                        title: Text("${r.name} - ${r.pointsSpent} pts"),
+                        subtitle: Text("Redeemed on: ${r.dateRedeemed}"),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          bottomNavigationBar: BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _bottomButton('Dashboard', _goToDashboardScreen),
+                _bottomButton('Chores', _goToChoresScreen),
+                _bottomButton('Rewards', _goToRewardsScreen),
+                _bottomButton('Log Out', _logout),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

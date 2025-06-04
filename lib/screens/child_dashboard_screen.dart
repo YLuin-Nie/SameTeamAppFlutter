@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/theme_toggle_switch.dart';
 import '../services/api_service.dart';
 import '../models/chore_model.dart';
 import '../models/level_model.dart';
@@ -14,17 +17,12 @@ class ChildDashboardScreen extends StatefulWidget {
 }
 
 class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
-  bool _isDarkMode = false;
   int userId = -1;
   List<Chore> allChores = [];
   DateTime? selectedDate;
   String username = '';
   int totalPoints = 0;
   int unspentPoints = 0;
-
-  void _toggleTheme(bool value) {
-    setState(() => _isDarkMode = value);
-  }
 
   void _logout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -166,70 +164,72 @@ class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Child Dashboard'),
-          actions: [
-            Row(
-              children: [
-                const Text("🌙", style: TextStyle(fontSize: 16)),
-                Switch(value: _isDarkMode, onChanged: _toggleTheme),
-              ],
-            ),
-          ],
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Welcome, $username!', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text('Unspent Points: $unspentPoints pts'),
-                const SizedBox(height: 8),
-                buildChildLevel(),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _selectDate,
-                      child: const Text("Select Date"),
-                    ),
-                    ElevatedButton(
-                      onPressed: _clearDate,
-                      child: const Text("Clear Filter"),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  selectedDate == null
-                      ? 'All Pending Chores'
-                      : 'Chores for ${selectedDate!.toLocal().toString().split(" ")[0]}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                ...buildChoreList(),
-              ],
-            ),
-          ),
-        ),
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _bottomButton('Dashboard', _goToDashboardScreen),
-              _bottomButton('Chores', _goToChoresScreen),
-              _bottomButton('Rewards', _goToRewardsScreen),
-              _bottomButton('Log Out', _logout),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Child Dashboard'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: ThemeToggleSwitch(),
+              ),
             ],
           ),
-        ),
-      ),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Welcome, $username!',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('Unspent Points: $unspentPoints pts'),
+                  const SizedBox(height: 8),
+                  buildChildLevel(),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _selectDate,
+                        child: const Text("Select Date"),
+                      ),
+                      ElevatedButton(
+                        onPressed: _clearDate,
+                        child: const Text("Clear Filter"),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    selectedDate == null
+                        ? 'All Pending Chores'
+                        : 'Chores for ${selectedDate!.toLocal().toString().split(" ")[0]}',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  ...buildChoreList(),
+                ],
+              ),
+            ),
+          ),
+          bottomNavigationBar: BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _bottomButton('Dashboard', _goToDashboardScreen),
+                _bottomButton('Chores', _goToChoresScreen),
+                _bottomButton('Rewards', _goToRewardsScreen),
+                _bottomButton('Log Out', _logout),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
