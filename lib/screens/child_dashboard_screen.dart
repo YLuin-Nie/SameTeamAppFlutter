@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -88,12 +88,18 @@ class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
 
   Future<void> _loadDashboard() async {
     final prefs = await SharedPreferences.getInstance();
-    userId = prefs.getInt('userId') ?? -1;
+    userId = prefs.getInt(kIsWeb ? 'flutter.userId' : 'userId') ?? -1;
+
+    if (userId == -1) {
+      if (kDebugMode) print('❌ No valid userId found');
+      return;
+    }
 
     try {
       allChores = await ApiService().fetchChores();
       final users = await ApiService().fetchUsers();
       final user = users.firstWhere((u) => u.userId == userId);
+
       setState(() {
         username = user.username;
         totalPoints = user.totalPoints ?? 0;
@@ -101,10 +107,11 @@ class _ChildDashboardScreenState extends State<ChildDashboardScreen> {
       });
     } catch (e) {
       if (kDebugMode) {
-        print("Failed to load dashboard: $e");
+        print("Failed to load child dashboard: $e");
       }
     }
   }
+
 
   List<Widget> buildChoreList() {
     final pendingChores = allChores.where((chore) {

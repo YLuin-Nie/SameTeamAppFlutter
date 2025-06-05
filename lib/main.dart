@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'screens/signin_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/welcome_screen.dart';
@@ -35,9 +35,9 @@ class MyApp extends StatelessWidget {
       themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
-      initialRoute: '/', // 👈 Use splash screen for auto-login check
+      initialRoute: '/', // ✅ Start with SplashScreen for auto-login
       routes: {
-        '/': (context) => const SplashScreen(), // 👈 NEW auto-login logic
+        '/': (context) => const SplashScreen(),
         '/signin': (context) => const SignInScreen(userId: 0),
         '/signup': (context) => const SignUpScreen(),
         '/welcome': (context) => const WelcomeScreen(),
@@ -52,7 +52,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ✅ SplashScreen handles auto-login redirect
+// ✅ SplashScreen handles login check
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -69,27 +70,42 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    final role = prefs.getString('role');
-    final userId = prefs.getInt('userId');
+
+    final tokenKey = kIsWeb ? 'flutter.token' : 'token';
+    final roleKey = kIsWeb ? 'flutter.role' : 'role';
+    final userIdKey = kIsWeb ? 'flutter.userId' : 'userId';
+
+    final token = prefs.getString(tokenKey);
+    final role = prefs.getString(roleKey);
+    final userId = prefs.getInt(userIdKey);
+
+    // 🐞 Debug prints
+    print('🔍 Platform: ${kIsWeb ? 'WEB' : 'MOBILE'}');
+    print('📦 token: $token');
+    print('📦 role: $role');
+    print('📦 userId: $userId');
 
     if (token != null && role != null && userId != null) {
-      // Navigate to correct dashboard
       if (role == 'Parent') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => ParentDashboardScreen(userId: userId)),
+          MaterialPageRoute(
+            builder: (_) => ParentDashboardScreen(userId: userId),
+          ),
         );
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => ChildDashboardScreen(userId: userId)),
+          MaterialPageRoute(
+            builder: (_) => ChildDashboardScreen(userId: userId),
+          ),
         );
       }
     } else {
       Navigator.pushReplacementNamed(context, '/welcome');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

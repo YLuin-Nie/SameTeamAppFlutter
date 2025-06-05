@@ -23,15 +23,21 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.1
   build_runner: ^2.4.6
   freezed: ^2.4.6
   json_serializable: ^6.7.1
 
 flutter:
-
   uses-material-design: true
 
   assets:
     - assets/logo.png
     - assets/logodark.png
+
+# Optional: Uncomment if you want to ensure plugin compatibility on web
+# plugin:
+#   platforms:
+#     web:
+#       pluginClass: SharedPreferencesPlugin
+#       fileName: shared_preferences_web.dart

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/user_model.dart';
@@ -36,25 +37,35 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
 
   Future<void> fetchData() async {
     final prefs = await SharedPreferences.getInstance();
-    userId = prefs.getInt('userId') ?? -1;
-    final users = await ApiService().fetchUsers();
-    final currentUser = users.firstWhere((u) => u.userId == userId);
-    final allChores = await ApiService().fetchChores();
-    final fetchedCompleted = await ApiService().fetchCompletedChores();
+    userId = prefs.getInt(kIsWeb ? 'flutter.userId' : 'userId') ?? -1;
 
-    fetchedCompleted.sort((a, b) => b.completionDate.compareTo(a.completionDate));
+    if (userId == -1) {
+      if (kDebugMode) print("🚫 userId not found");
+      return;
+    }
 
-    final sameTeamChildren = users
-        .where((u) => u.role == 'Child' && u.teamId == currentUser.teamId)
-        .toList();
+    try {
+      final users = await ApiService().fetchUsers();
+      final currentUser = users.firstWhere((u) => u.userId == userId);
+      final allChores = await ApiService().fetchChores();
+      final fetchedCompleted = await ApiService().fetchCompletedChores();
 
-    setState(() {
-      children = sameTeamChildren;
-      chores = allChores;
-      completedChores = fetchedCompleted;
-      expandedState = {for (var child in sameTeamChildren) child.userId: true};
-      isLoading = false;
-    });
+      fetchedCompleted.sort((a, b) => b.completionDate.compareTo(a.completionDate));
+
+      final sameTeamChildren = users
+          .where((u) => u.role == 'Child' && u.teamId == currentUser.teamId)
+          .toList();
+
+      setState(() {
+        children = sameTeamChildren;
+        chores = allChores;
+        completedChores = fetchedCompleted;
+        expandedState = {for (var child in sameTeamChildren) child.userId: true};
+        isLoading = false;
+      });
+    } catch (e) {
+      if (kDebugMode) print("❌ fetchData error: $e");
+    }
   }
 
   List<Chore> getPendingChoresForChild(int childId) {
@@ -247,44 +258,48 @@ class _AddChoreScreenState extends State<AddChoreScreen> {
                 onExpansionChanged: (val) =>
                     setState(() => section3Expanded = val),
                 children: [
-                  ...completedChores.map((chore) => Container(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                chore.choreText,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.lineThrough,
+                  ...completedChores.map((chore) {
+                    final child = children.firstWhere(
+                          (c) => c.userId == chore.assignedTo,
+                      orElse: () => User(userId: 0, username: 'Unknown', email: '', role: ''),
+                    );
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "${chore.choreText} (${child.username})",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                "Points: ${chore.points} — ${chore.completionDate}",
-                              )
-                            ],
+                                Text("Points: ${chore.points} — ${chore.completionDate}"),
+                              ],
+                            ),
                           ),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () =>
-                              _undoCompletedChore(chore.completedId),
-                          icon: const Icon(Icons.undo),
-                          label: const Text("Undo"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.deepPurpleAccent,
-                            foregroundColor: Colors.white,
-                          ),
-                        )
-                      ],
-                    ),
-                  ))
+                          ElevatedButton.icon(
+                            onPressed: () => _undoCompletedChore(chore.completedId),
+                            icon: const Icon(Icons.undo),
+                            label: const Text("Undo"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepPurpleAccent,
+                              foregroundColor: Colors.white,
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+                  })
                 ],
               )
             ],

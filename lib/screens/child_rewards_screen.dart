@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -77,7 +77,7 @@ class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
 
   Future<void> _loadRewardsData() async {
     final prefs = await SharedPreferences.getInstance();
-    userId = prefs.getInt('userId') ?? widget.userId;
+    userId = prefs.getInt(kIsWeb ? 'flutter.userId' : 'userId') ?? widget.userId;
 
     try {
       final users = await ApiService().fetchUsers();
@@ -99,6 +99,7 @@ class _ChildRewardsScreenState extends State<ChildRewardsScreen> {
       setState(() => isLoading = false);
     }
   }
+
 
   Future<void> _redeemReward(Reward reward) async {
     if (points < reward.cost) {

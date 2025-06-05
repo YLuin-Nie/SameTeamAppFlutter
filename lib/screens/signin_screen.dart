@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/login_models.dart';
 import '../services/api_service.dart';
@@ -21,6 +22,22 @@ class _SignInScreenState extends State<SignInScreen> {
   bool showPassword = false;
   bool isLoading = false;
 
+  Future<void> _saveUserSession(String token, String role, int userId, Map<String, dynamic> userJson) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (kIsWeb) {
+      await prefs.setString('flutter.token', token);
+      await prefs.setString('flutter.role', role);
+      await prefs.setInt('flutter.userId', userId);
+      await prefs.setString('flutter.loggedInUser', jsonEncode(userJson));
+    } else {
+      await prefs.setString('token', token);
+      await prefs.setString('role', role);
+      await prefs.setInt('userId', userId);
+      await prefs.setString('loggedInUser', jsonEncode(userJson));
+    }
+  }
+
   Future<void> _handleSignIn() async {
     setState(() => isLoading = true);
 
@@ -39,11 +56,12 @@ class _SignInScreenState extends State<SignInScreen> {
       final loginRequest = LoginRequest(email: email, password: password);
       final loginResponse = await ApiService().login(loginRequest);
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', loginResponse.token);
-      await prefs.setInt('userId', loginResponse.user.userId);
-      await prefs.setString('role', loginResponse.user.role);
-      await prefs.setString('loggedInUser', jsonEncode(loginResponse.user));
+      await _saveUserSession(
+        loginResponse.token,
+        loginResponse.user.role,
+        loginResponse.user.userId,
+        loginResponse.user.toJson(),
+      );
 
       if (loginResponse.user.role == 'Parent') {
         Navigator.pushReplacement(

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
@@ -167,7 +167,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
 
   Future<void> _loadDashboard() async {
     final prefs = await SharedPreferences.getInstance();
-    userId = prefs.getInt('userId') ?? -1;
+    userId = prefs.getInt(kIsWeb ? 'flutter.userId' : 'userId') ?? -1;
+
     if (userId == -1) return;
 
     try {
@@ -188,6 +189,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
       }
     }
   }
+
 
   @override
   void initState() {

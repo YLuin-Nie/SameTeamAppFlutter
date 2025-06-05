@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -38,7 +38,7 @@ class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
   Future<void> fetchData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      userId = prefs.getInt('userId') ?? -1;
+      userId = prefs.getInt(kIsWeb ? 'flutter.userId' : 'userId') ?? -1;
 
       final users = await ApiService().fetchUsers();
       final currentUser = users.firstWhere((u) => u.userId == userId);
@@ -66,6 +66,7 @@ class _ParentRewardsScreenState extends State<ParentRewardsScreen> {
       setState(() => isLoading = false);
     }
   }
+
 
   void _addNewReward() async {
     final shouldRefresh = await showDialog<bool>(

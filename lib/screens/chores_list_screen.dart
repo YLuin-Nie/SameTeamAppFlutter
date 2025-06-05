@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -47,7 +47,9 @@ class _ChoresListScreenState extends State<ChoresListScreen> {
 
   Future<void> _fetchData() async {
     final prefs = await SharedPreferences.getInstance();
-    userId = prefs.getInt('userId') ?? -1;
+    userId = prefs.getInt(kIsWeb ? 'flutter.userId' : 'userId') ?? -1;
+
+    if (userId == -1) return;
 
     try {
       final users = await ApiService().fetchUsers();
