@@ -1,37 +1,74 @@
 # SameTeamAppFlutter
 
-A Flutter-based mobile version of the SameTeamApp, originally built in React with an ASP.NET Core backend. This cross-platform app helps parents and children manage chores, track rewards, and promote teamwork at home.
+A modern Flutter-based version of the original SameTeamApp (previously built in React), designed to help families manage chores, track rewards, and foster teamwork across devices.
 
 ## 📱 Description
 
-SameTeamAppFlutter is a mobile productivity and parenting tool built with Flutter. Parents can assign chores, children can complete them, and everyone stays on the same page. It connects to a secure ASP.NET Core API hosted on Azure with an Azure SQL Database using JWT authentication. It replaces localStorage with scalable cloud-based storage.
+SameTeamAppFlutter is a cross-platform productivity and parenting tool that connects to a secure ASP.NET Core Web API backend hosted on Azure. Parents can create teams, assign chores and rewards, and monitor progress, while children can complete chores and redeem points — all through a seamless mobile, web, or desktop experience.
+
+---
 
 ## 🚀 Technologies Used
 
-- **Flutter & Dart** – Cross-platform UI development
-- **Android Studio** – Main IDE for development
-- **Provider** – State management
-- **HTTP / Shared Preferences** – For API communication and local session storage
-- **ASP.NET Core Web API** – Backend service for user authentication, chores, rewards, and team management
-- **Azure SQL Database** – Persistent data storage
+| Frontend              | Backend                  | Other Tools & Services         |
+|-----------------------|--------------------------|--------------------------------|
+| Flutter + Dart        | ASP.NET Core Web API     | Azure App Service              |
+| Android Studio        | Azure SQL Database       | GitHub                         |
+| Provider (state mgmt) | Entity Framework Core    | Vercel (for React frontend)    |
+| Shared Preferences    | JWT Authentication       | http-server (local web test)   |
 
-## 🔒 Features
+---
 
-- User Authentication (Sign In / Sign Up with optional Team creation)
-- Role-based access (Parent / Child)
-- Parent Dashboard: Add, assign, and track chores and rewards
-- Child Dashboard: View and complete assigned chores
-- Reward System: Earn points and redeem them
-- Theme toggle (light/dark mode) support
-- Responsive UI for Android, iOS, web, and desktop
+## 🔐 Key Features
 
-## 🌐 Backend API
+- ✅ **Role-Based Authentication** – Parent and Child modes
+- 🧑‍🎓 **Team Management** – Create/join teams with secure codes
+- ✅ **Parent Dashboard** – Assign chores, add rewards, view progress
+- 🎯 **Child Dashboard** – Complete chores, track points, redeem rewards
+- 🎁 **Reward System** – Earn and redeem points
+- 🌙 **Theme Toggle** – Light/Dark mode support
+- 🖥️ **Responsive UI** – Works on Android, iOS, Web, and Desktop
+- 🔗 **Live Backend** – Hosted on Azure with persistent cloud data
 
-SameTeamAppFlutter connects to a live ASP.NET Core backend hosted on Azure.
+---
 
-Key Endpoints:
-- `POST /Auth/register` – User Registration
-- `POST /Auth/login` – User Login
-- `GET /Chores`, `POST /Chores` – Chore Management
-- `GET /Rewards`, `POST /Rewards` – Reward System
-- `GET /Users`, `GET /Teams`, etc. – Team/User Management
+## 🌐 API Endpoints
+
+| Endpoint                  | Description                  |
+|---------------------------|------------------------------|
+| `POST /Auth/register`     | User Registration            |
+| `POST /Auth/login`        | User Login                   |
+| `GET /Users`              | User/Team management         |
+| `GET /Chores` / `POST`    | Chore retrieval/assignment   |
+| `GET /Rewards` / `POST`   | Reward management            |
+| `GET /RedeemedRewards`    | Reward redemption history    |
+
+---
+
+## 🧪 Platforms Tested
+
+| Platform                  | Status    |
+|---------------------------|-----------|
+| Chrome                    | ✅ Working |
+| Edge                      | ✅ Working |
+| Android Emulator (API 36) | ✅ Working |
+| Windows Desktop           | ✅ Working |
+| iPhone (LAN test)         | ✅ Working |
+| iPad Pro (LAN test)       | ✅ Working |
+| Vercel-hosted Frontend    | ✅ Working |
+
+---
+
+## 📦 Deployment
+
+Backend: Azure App Service
+Frontend (React version): same-team-app-full-stack.vercel.app
+
+---
+
+## 📈 Roadmap / TODO
+
+- Firebase push notifications
+- Offline mode support
+- Child-specific avatars or profile icons
+- Admin panel for team moderation
